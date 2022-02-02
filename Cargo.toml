@@ -1,11 +1,20 @@
 [package]
-name = "rocket_test"
+name = "rocket_pg_template"
 version = "0.1.0"
 edition = "2021"
 
+readme = "README.md"
+
 [dependencies]
+rocket = { version = "0.5.0-rc.1", features = ["json"] }
 dotenv = "0.15.0"
-diesel = { version = "1.4.4", features = ["postgres"] }
-rocket = "0.5.0-rc.1"
-serde = "1.0.136"
+diesel = { version = "1.4.4", features = ["postgres", "chrono"] }
+serde = { version = "1.0.136", features = ["derive"] }
 serde_json = "1.0.78"
+chrono = { version = "0.4.19", features = ["serde"] }
+r2d2-diesel = "1.0.0"
+r2d2 = "0.8.9"
+env_logger = "0.9.0"
+log = "0.4.14"
+
+[features]

@@ -1,17 +1,9 @@
-#[macro_use]
-extern crate rocket;
+use rocket_pg_template;
 
-#[get("/")]
-fn index() -> &'static str {
-    "Hello, world!"
-}
-
-#[get("/<name>")]
-fn greeting(name: String) -> String {
-    format!("Hello, {}!", name)
-}
-
-#[launch]
-fn rocket() -> _ {
-    rocket::build().mount("/api", routes![index, greeting])
+#[rocket::main]
+async fn main() {
+    if let Err(e) = rocket_pg_template::rocket().launch().await {
+        println!("Rocket didn't launch");
+        drop(e);
+    };
 }
