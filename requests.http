@@ -1,2 +1,13 @@
 ###
-http://127.0.0.1:8000/api/odd
+GET http://127.0.0.1:8000/api/odd
+
+###
+
+POST http://127.0.0.1:8000/api/problems
+Content-Type: application/json
+
+{
+  "title": "Second problem",
+  "grade": 4,
+  "rating": 2
+}

@@ -12,5 +12,8 @@ mod routes;
 mod schema;
 
 pub fn rocket() -> rocket::Rocket<Build> {
-    rocket::build().mount("/api", routes![routes::problems::greeting])
+    rocket::build().manage(db::init_pool()).mount(
+        "/api",
+        routes![routes::problems::greeting, routes::problems::post_problem],
+    )
 }
