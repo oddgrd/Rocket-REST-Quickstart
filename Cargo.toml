@@ -8,7 +8,7 @@ readme = "README.md"
 [dependencies]
 rocket = { version = "0.5.0-rc.1", features = ["json"] }
 dotenv = "0.15.0"
-diesel = { version = "1.4.4", features = ["postgres", "chrono", "r2d2"] }
+diesel = { version = "1.4.5", features = ["postgres", "chrono", "r2d2"] }
 serde = { version = "1.0.136", features = ["derive"] }
 serde_json = "1.0.78"
 chrono = { version = "0.4.19", features = ["serde"] }
@@ -17,3 +17,8 @@ log = "0.4.14"
 validator = "0.14.0"
 
 [features]
+
+[dependencies.rocket_sync_db_pools]
+version = "0.1.0-rc.1"
+default-features = false
+features = ["diesel_postgres_pool"]
