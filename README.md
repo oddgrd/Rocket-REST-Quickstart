@@ -1,0 +1,1 @@
+Rocket Postgres API template based on [realworld-rust-rocket](https://github.com/TatriX/realworld-rust-rocket)

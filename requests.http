@@ -7,7 +7,7 @@ POST http://127.0.0.1:8000/api/problems
 Content-Type: application/json
 
 {
-  "title": "Second problem",
+  "title": "First problem",
   "grade": 4,
   "rating": 2
 }
