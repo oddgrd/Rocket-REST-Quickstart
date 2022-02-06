@@ -8,15 +8,6 @@ const PROBLEM_GRADE: i32 = 5;
 const PROBLEM_RATING: i32 = 1;
 
 #[test]
-fn greeting() {
-    let client = test_client();
-    let response = client.get("/api/Odd").dispatch();
-
-    assert_eq!(response.status(), Status::Ok);
-    assert_eq!(response.into_string(), Some("Hello, Odd!".into()));
-}
-
-#[test]
 fn post_problem() {
     let client = test_client();
     let response = create_problem(&client);

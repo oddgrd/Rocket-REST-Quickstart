@@ -1,38 +1,39 @@
 use crate::{
-    db::{problems, DbConnection},
-    models::problem::Problem,
+    models::problem::{NewProblem, Problem},
+    schema, DBPool, QueryResult,
 };
-use diesel::result::Error;
-use rocket::{http::Status, response::status, serde::json::Json};
-
-#[get("/<name>")]
-pub fn greeting(name: String) -> String {
-    format!("Hello, {}!", name)
-}
+use diesel::prelude::*;
+use rocket::{
+    response::status::{self, Created},
+    serde::json::Json,
+};
 
 #[post("/problems", format = "json", data = "<new_problem>")]
-pub fn post_problem(
-    new_problem: Json<problems::NewProblem>,
-    conn: DbConnection,
-) -> Result<status::Created<Json<Problem>>, Status> {
-    let new_problem = new_problem.into_inner();
-    problems::create(
-        &conn,
-        &new_problem.title,
-        new_problem.grade,
-        new_problem.rating,
-    )
-    .map(|problem| problem_created(problem))
-    .map_err(|error| error_status(error))
+pub async fn create_problem(
+    conn: DBPool,
+    new_problem: Json<NewProblem>,
+) -> QueryResult<status::Created<Json<Problem>>> {
+    let values = new_problem.clone();
+    let problem: Problem = conn
+        .run(move |c| {
+            diesel::insert_into(schema::problems::table)
+                .values(values)
+                .get_result(c)
+        })
+        .await?;
+
+    let location = uri!("/api", get_problem(problem.id));
+    Ok(Created::new(location.to_string()).body(Json(problem)))
 }
 
-fn problem_created(problem: Problem) -> status::Created<Json<Problem>> {
-    status::Created::new("location URI here".to_string()).body(Json(problem))
-}
-
-fn error_status(error: Error) -> Status {
-    match error {
-        Error::NotFound => Status::NotFound,
-        _ => Status::InternalServerError,
-    }
+#[get("/problems/<id>")]
+pub async fn get_problem(conn: DBPool, id: i32) -> Option<Json<Problem>> {
+    conn.run(move |c| {
+        schema::problems::table
+            .filter(schema::problems::id.eq(id))
+            .first(c)
+    })
+    .await
+    .map(Json)
+    .ok()
 }
