@@ -1,18 +1,16 @@
+use super::QueryResult;
 use crate::{
     models::problem::{NewProblem, Problem},
-    schema, DBPool, QueryResult,
+    schema, DbPool,
 };
 use diesel::prelude::*;
-use rocket::{
-    response::status::{self, Created},
-    serde::json::Json,
-};
+use rocket::{response::status::Created, serde::json::Json};
 
 #[post("/problems", format = "json", data = "<new_problem>")]
 pub async fn create_problem(
-    conn: DBPool,
+    conn: DbPool,
     new_problem: Json<NewProblem>,
-) -> QueryResult<status::Created<Json<Problem>>> {
+) -> QueryResult<Created<Json<Problem>>> {
     let values = new_problem.clone();
     let problem: Problem = conn
         .run(move |c| {
@@ -27,7 +25,7 @@ pub async fn create_problem(
 }
 
 #[get("/problems/<id>")]
-pub async fn get_problem(conn: DBPool, id: i32) -> Option<Json<Problem>> {
+pub async fn get_problem(conn: DbPool, id: i32) -> Option<Json<Problem>> {
     conn.run(move |c| {
         schema::problems::table
             .filter(schema::problems::id.eq(id))
