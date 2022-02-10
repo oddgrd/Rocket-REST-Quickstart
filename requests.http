@@ -1,8 +1,8 @@
 ###
-GET http://127.0.0.1:8000/api/odd
+GET http://localhost:8000/api
 
 ###
-POST http://127.0.0.1:8000/api/problems
+POST http://localhost:8000/api/problems
 Content-Type: application/json
 
 {
@@ -12,4 +12,4 @@ Content-Type: application/json
 }
 
 ###
-GET http://127.0.0.1:8000/api/problems/24
+GET http://localhost:8000/api/problems/1

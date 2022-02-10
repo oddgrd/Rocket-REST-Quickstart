@@ -38,21 +38,29 @@ async fn run_migrations(rocket: Rocket<Build>) -> Rocket<Build> {
     rocket
 }
 
+#[get("/")]
+fn index() -> &'static str {
+    "Hello, world!"
+}
+
 pub fn rocket() -> rocket::Rocket<Build> {
     dotenv().ok();
     let db_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+
     let db: Map<_, Value> = map! {
         "url" => db_url.into(),
         "pool_size" => 10.into()
     };
 
     let figment = rocket::Config::figment().merge(("databases", map!["mhb" => db]));
+
     rocket::custom(figment)
         .attach(DbPool::fairing())
         .attach(AdHoc::on_ignite("Database migrations", run_migrations))
         .mount(
             "/api",
             routes![
+                index,
                 routes::problems::create_problem,
                 routes::problems::get_problem
             ],

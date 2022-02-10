@@ -17,4 +17,6 @@ FROM buildpack-deps:stretch
 
 COPY --from=build /rocket_pg_template/target/debug/rocket_pg_template /app/
 
+ENV ROCKET_ADDRESS=0.0.0.0
+
 CMD [ "/app/rocket_pg_template" ]
