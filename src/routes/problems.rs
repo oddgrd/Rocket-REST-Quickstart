@@ -1,22 +1,23 @@
 use super::QueryResult;
 use crate::{
     models::problem::{NewProblem, Problem},
-    schema, DbPool,
+    schema::problems,
+    DbPool,
 };
 use diesel::prelude::*;
 use rocket::{response::status::Created, serde::json::Json};
 
 #[post("/problems", format = "json", data = "<new_problem>")]
 pub async fn create_problem(
-    conn: DbPool,
+    db: DbPool,
     new_problem: Json<NewProblem>,
 ) -> QueryResult<Created<Json<Problem>>> {
     let values = new_problem.clone();
-    let problem: Problem = conn
-        .run(move |c| {
-            diesel::insert_into(schema::problems::table)
+    let problem: Problem = db
+        .run(move |conn| {
+            diesel::insert_into(problems::table)
                 .values(values)
-                .get_result(c)
+                .get_result(conn)
         })
         .await?;
 
@@ -25,13 +26,22 @@ pub async fn create_problem(
 }
 
 #[get("/problems/<id>")]
-pub async fn get_problem(conn: DbPool, id: i32) -> Option<Json<Problem>> {
-    conn.run(move |c| {
-        schema::problems::table
-            .filter(schema::problems::id.eq(id))
-            .first(c)
-    })
-    .await
-    .map(Json)
-    .ok()
+pub async fn get_problem(db: DbPool, id: i32) -> Option<Json<Problem>> {
+    db.run(move |conn| problems::table.filter(problems::id.eq(id)).first(conn))
+        .await
+        .map(Json)
+        .ok()
+}
+
+#[delete("/problems/<id>")]
+pub async fn delete_problem(db: DbPool, id: i32) -> QueryResult<Option<()>> {
+    let affected = db
+        .run(move |conn| {
+            diesel::delete(problems::table)
+                .filter(problems::id.eq(id))
+                .execute(conn)
+        })
+        .await?;
+
+    Ok((affected == 1).then(|| ()))
 }

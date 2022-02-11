@@ -62,7 +62,8 @@ pub fn rocket() -> rocket::Rocket<Build> {
             routes![
                 index,
                 routes::problems::create_problem,
-                routes::problems::get_problem
+                routes::problems::get_problem,
+                routes::problems::delete_problem,
             ],
         )
 }

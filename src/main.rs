@@ -1,5 +1,3 @@
-use rocket_pg_template;
-
 #[rocket::main]
 async fn main() {
     if let Err(e) = rocket_pg_template::rocket().launch().await {
