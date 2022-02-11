@@ -13,6 +13,7 @@ services:
     depends_on:
      - db
     environment:
+      - ROCKET_ADDRESS=0.0.0.0
       - DATABASE_URL=postgres://username:password@db/postgres
     ports:
       - "8000:8000"

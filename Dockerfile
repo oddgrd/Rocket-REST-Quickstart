@@ -1,4 +1,4 @@
-FROM rust:latest AS build
+FROM rust:latest AS builder
 
 RUN USER=root cargo new --bin rocket_pg_template
 WORKDIR /rocket_pg_template
@@ -7,7 +7,6 @@ RUN cargo build
 
 RUN rm src/*.rs
 COPY ./src ./src
-COPY ./tests ./tests
 COPY ./migrations ./migrations
 COPY ./diesel.toml ./diesel.toml
 RUN rm ./target/debug/deps/rocket_pg_template*
@@ -15,7 +14,7 @@ RUN cargo build
 
 FROM buildpack-deps:stretch
 
-COPY --from=build /rocket_pg_template/target/debug/rocket_pg_template /app/
+COPY --from=builder /rocket_pg_template/target/debug/rocket_pg_template /app/
 
 ENV ROCKET_ADDRESS=0.0.0.0
 
