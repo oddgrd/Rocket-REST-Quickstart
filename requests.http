@@ -1,18 +1,32 @@
-###
+### Hello World
 GET http://localhost:8000/api
 
-###
+### Create problem
 POST http://localhost:8000/api/problems
 Content-Type: application/json
 
 {
-  "title": "First problem",
+  "title": "First Problem",
   "grade": 4,
   "rating": 2
 }
 
-###
+### Get all problems
+GET http://localhost:8000/api/problems
+
+### Get problem by id
 GET http://localhost:8000/api/problems/1
 
-###
+### Edit problem by id
+PUT http://localhost:8000/api/problems/1
+Content-Type: application/json
+
+{
+  "title": "Updated problem",
+  "grade": 13,
+  "rating": 0
+}
+
+### Delete problem by id
 DELETE http://localhost:8000/api/problems/1
+

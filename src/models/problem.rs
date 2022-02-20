@@ -13,7 +13,7 @@ pub struct Problem {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Insertable, Serialize, Deserialize, Debug, Clone)]
+#[derive(Insertable, Serialize, Deserialize, Debug, Clone, AsChangeset)]
 #[table_name = "problems"]
 pub struct NewProblem {
     pub title: String,
