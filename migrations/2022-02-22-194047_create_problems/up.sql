@@ -4,8 +4,8 @@ CREATE TABLE problems (
   title VARCHAR NOT NULL,
   grade INTEGER NOT NULL,
   rating INTEGER NOT NULL,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
 CREATE UNIQUE INDEX title_unique_idx ON problems (LOWER(title));

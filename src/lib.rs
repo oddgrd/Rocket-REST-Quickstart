@@ -25,12 +25,12 @@ mod schema;
 use rocket_sync_db_pools::database;
 
 #[database("mhb")]
-pub struct DbPool(diesel::pg::PgConnection);
+pub struct Db(diesel::pg::PgConnection);
 
 async fn run_migrations(rocket: Rocket<Build>) -> Rocket<Build> {
     embed_migrations!();
 
-    let conn = DbPool::get_one(&rocket).await.expect("database connection");
+    let conn = Db::get_one(&rocket).await.expect("database connection");
     conn.run(|c| embedded_migrations::run_with_output(c, &mut std::io::stdout()))
         .await
         .expect("diesel migrations");
@@ -55,17 +55,8 @@ pub fn rocket() -> rocket::Rocket<Build> {
     let figment = rocket::Config::figment().merge(("databases", map!["mhb" => db]));
 
     rocket::custom(figment)
-        .attach(DbPool::fairing())
+        .attach(Db::fairing())
         .attach(AdHoc::on_ignite("Database migrations", run_migrations))
-        .mount(
-            "/api",
-            routes![
-                index,
-                routes::problems::create_problem,
-                routes::problems::get_problem,
-                routes::problems::get_problems,
-                routes::problems::update_problem,
-                routes::problems::delete_problem,
-            ],
-        )
+        .mount("/api", routes![index])
+        .mount("/api/problems", routes::problems::routes())
 }
