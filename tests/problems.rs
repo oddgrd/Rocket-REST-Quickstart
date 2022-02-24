@@ -17,7 +17,7 @@ pub struct Problem {
 
 #[test]
 fn post_problem() {
-    let client = test_client();
+    let client = test_client().lock().unwrap();
     let test_title = "test post_problem";
 
     let problem: Problem = create_problem(&client, test_title);
@@ -29,7 +29,7 @@ fn post_problem() {
 
 #[test]
 fn get_problem() {
-    let client = test_client();
+    let client = test_client().lock().unwrap();
     let title = "test get_problem";
     let new_problem: Problem = create_problem(&client, title);
 
@@ -49,7 +49,7 @@ fn get_problem() {
 #[test]
 fn get_problems() {
     const N: usize = 10;
-    let client = test_client();
+    let client = test_client().lock().unwrap();
 
     // Create N new problems
     for i in 1..=N {
@@ -71,7 +71,7 @@ fn get_problems() {
 
 #[test]
 fn update_problem() {
-    let client = test_client();
+    let client = test_client().lock().unwrap();
     let title = "test update_problem";
     let new_problem: Problem = create_problem(&client, title);
 
@@ -96,7 +96,7 @@ fn update_problem() {
 
 #[test]
 fn delete_problem() {
-    let client = test_client();
+    let client = test_client().lock().unwrap();
     let title = "test delete_problem";
     let problem: Problem = create_problem(&client, title);
 

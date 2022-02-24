@@ -7,36 +7,17 @@ extern crate diesel;
 #[macro_use]
 extern crate diesel_migrations;
 
-use dotenv::dotenv;
-use rocket::{
-    fairing::AdHoc,
-    figment::{
-        map,
-        value::{Map, Value},
-    },
-    Build, Rocket,
-};
-use std::env;
+#[macro_use]
+extern crate rocket_sync_db_pools;
 
+use dotenv::dotenv;
+use rocket::{fairing::AdHoc, Build};
+
+mod config;
+mod database;
 mod models;
 mod routes;
 mod schema;
-
-use rocket_sync_db_pools::database;
-
-#[database("mhb")]
-pub struct Db(diesel::pg::PgConnection);
-
-async fn run_migrations(rocket: Rocket<Build>) -> Rocket<Build> {
-    embed_migrations!();
-
-    let conn = Db::get_one(&rocket).await.expect("database connection");
-    conn.run(|c| embedded_migrations::run_with_output(c, &mut std::io::stdout()))
-        .await
-        .expect("diesel migrations");
-
-    rocket
-}
 
 #[get("/")]
 fn index() -> &'static str {
@@ -45,18 +26,13 @@ fn index() -> &'static str {
 
 pub fn rocket() -> rocket::Rocket<Build> {
     dotenv().ok();
-    let db_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
 
-    let db: Map<_, Value> = map! {
-        "url" => db_url.into(),
-        "pool_size" => 10.into()
-    };
-
-    let figment = rocket::Config::figment().merge(("databases", map!["mhb" => db]));
-
-    rocket::custom(figment)
-        .attach(Db::fairing())
-        .attach(AdHoc::on_ignite("Database migrations", run_migrations))
+    rocket::custom(config::from_env())
+        .attach(database::Db::fairing())
+        .attach(AdHoc::on_ignite(
+            "Database migrations",
+            database::run_migrations,
+        ))
         .mount("/api", routes![index])
         .mount("/api/problems", routes::problems::routes())
 }

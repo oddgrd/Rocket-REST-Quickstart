@@ -9,6 +9,6 @@ docker run \
   --publish 127.0.0.1:8001:5432 \
   postgres
 
-DATABASE_URL=postgres://username:password@localhost:8001/postgres cargo test -- --test-threads=1
+DATABASE_URL=postgres://username:password@localhost:8001/postgres cargo test
 
 docker stop postgres

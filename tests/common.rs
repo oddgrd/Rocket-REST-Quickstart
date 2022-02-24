@@ -1,4 +1,6 @@
 use rocket::local::blocking::Client;
+use std::sync::Mutex;
+use once_cell::sync::OnceCell;
 
 #[macro_export]
 macro_rules! json_string {
@@ -7,7 +9,10 @@ macro_rules! json_string {
     };
 }
 
-pub fn test_client() -> Client {
-    let rocket = rocket_pg_template::rocket();
-    Client::tracked(rocket).expect("valid rocket instance")
+pub fn test_client() -> &'static Mutex<Client> {
+    static INSTANCE: OnceCell<Mutex<Client>> = OnceCell::new();
+    INSTANCE.get_or_init(|| {
+        let rocket = rocket_pg_template::rocket();
+        Mutex::from(Client::tracked(rocket).expect("valid rocket instance"))
+    })
 }

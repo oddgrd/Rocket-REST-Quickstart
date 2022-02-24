@@ -1075,6 +1075,7 @@ dependencies = [
  "dotenv",
  "env_logger",
  "log",
+ "once_cell",
  "rocket",
  "rocket_sync_db_pools",
  "serde",

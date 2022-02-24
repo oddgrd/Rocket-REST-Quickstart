@@ -1,8 +1,8 @@
 use super::QueryResult;
 use crate::{
+    database::Db,
     models::problem::{NewProblem, Problem},
     schema::problems,
-    Db,
 };
 use diesel::prelude::*;
 use rocket::{response::status::Created, serde::json::Json};
