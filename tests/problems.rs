@@ -1,4 +1,5 @@
 mod common;
+use chrono::{DateTime, Utc};
 use common::*;
 use rocket::http::{ContentType, Status};
 use rocket::local::blocking::Client;
@@ -8,11 +9,14 @@ const PROBLEM_GRADE: i32 = 5;
 const PROBLEM_RATING: i32 = 1;
 
 #[derive(Debug, Deserialize)]
-pub struct Problem {
+#[serde(rename_all = "camelCase")]
+struct Problem {
     pub id: i32,
     pub title: String,
     pub grade: i32,
     pub rating: i32,
+    pub updated_at: DateTime<Utc>,
+    pub created_at: DateTime<Utc>,
 }
 
 #[test]
@@ -65,7 +69,7 @@ fn get_problems() {
 
     // Problems should be ordered by created_at DESC (newest first)
     assert_eq!(problems[0].title, "test_get_problems_10");
-    assert_eq!(problems[9].title, "test_get_problems_1");
+    assert_eq!(problems[N - 1].title, "test_get_problems_1");
     assert!(problems.len() >= N);
 }
 
@@ -89,6 +93,7 @@ fn update_problem() {
 
     let problem: Problem = response.into_json().unwrap();
 
+    assert!(problem.updated_at > new_problem.created_at);
     assert_eq!(problem.title, "updated_problem".to_string());
     assert_eq!(problem.grade, 13);
     assert_eq!(problem.rating, 2);
@@ -120,6 +125,11 @@ fn create_problem(client: &Client, title: &str) -> Problem {
         .dispatch();
 
     assert_eq!(response.status(), Status::Created);
+    assert!(response
+        .headers()
+        .get_one("Location")
+        .unwrap()
+        .starts_with("/api/problems/"));
 
     response.into_json().unwrap()
 }

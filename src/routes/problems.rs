@@ -21,7 +21,7 @@ pub async fn create_problem(
         })
         .await?;
 
-    let location = uri!("/api", get_problem(problem.id));
+    let location = uri!("/api/problems/", get_problem(problem.id));
     Ok(Created::new(location.to_string()).body(Json(problem)))
 }
 

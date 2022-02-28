@@ -1,6 +1,6 @@
+use once_cell::sync::OnceCell;
 use rocket::local::blocking::Client;
 use std::sync::Mutex;
-use once_cell::sync::OnceCell;
 
 #[macro_export]
 macro_rules! json_string {

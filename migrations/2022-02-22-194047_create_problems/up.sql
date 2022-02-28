@@ -8,4 +8,6 @@ CREATE TABLE problems (
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
+SELECT diesel_manage_updated_at('problems');
+
 CREATE UNIQUE INDEX title_unique_idx ON problems (LOWER(title));
