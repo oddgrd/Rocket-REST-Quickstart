@@ -2,7 +2,7 @@
 GET http://localhost:8000/api
 
 ### Register
-POST http://localhost:8000/api/auth/register
+POST http://localhost:8000/api/users/register
 Content-Type: application/x-www-form-urlencoded
 
 username=odd
@@ -10,11 +10,14 @@ username=odd
 &password=password
 
 ### Login
-POST http://localhost:8000/api/auth/login
+POST http://localhost:8000/api/users/login
 Content-Type: application/x-www-form-urlencoded
 
 username=odd
 &password=password
+
+### Me
+GET http://localhost:8000/api/users/me
 
 ### Create problem
 POST http://localhost:8000/api/problems

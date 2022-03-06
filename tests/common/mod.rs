@@ -19,7 +19,7 @@ pub fn test_client() -> &'static Mutex<Client> {
     })
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Problem {
     pub id: i32,
@@ -30,7 +30,7 @@ pub struct Problem {
     pub created_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct User {
     pub id: i32,

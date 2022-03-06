@@ -1,5 +1,5 @@
 mod common;
-use common::*;
+use common::{test_client, Problem};
 use rocket::http::{ContentType, Status};
 use rocket::local::blocking::Client;
 

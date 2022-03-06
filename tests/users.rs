@@ -1,5 +1,5 @@
 mod common;
-use common::*;
+use common::{test_client, Profile, User};
 use rocket::{
     http::{ContentType, Cookie, Status},
     local::blocking::{Client, LocalResponse},
