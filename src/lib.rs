@@ -13,6 +13,7 @@ extern crate rocket_sync_db_pools;
 use dotenv::dotenv;
 use rocket::{fairing::AdHoc, Build};
 
+mod auth;
 mod config;
 mod database;
 mod models;
@@ -35,4 +36,5 @@ pub fn rocket() -> rocket::Rocket<Build> {
         ))
         .mount("/api", routes![index])
         .mount("/api/problems", routes::problems::routes())
+        .mount("/api/users", routes::users::routes())
 }

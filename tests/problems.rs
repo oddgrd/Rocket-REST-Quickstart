@@ -1,23 +1,10 @@
 mod common;
-use chrono::{DateTime, Utc};
 use common::*;
 use rocket::http::{ContentType, Status};
 use rocket::local::blocking::Client;
-use serde::Deserialize;
 
 const PROBLEM_GRADE: i32 = 5;
 const PROBLEM_RATING: i32 = 1;
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct Problem {
-    pub id: i32,
-    pub title: String,
-    pub grade: i32,
-    pub rating: i32,
-    pub updated_at: DateTime<Utc>,
-    pub created_at: DateTime<Utc>,
-}
 
 #[test]
 fn post_problem() {
@@ -52,7 +39,7 @@ fn get_problem() {
 
 #[test]
 fn get_problems() {
-    const N: usize = 10;
+    const N: usize = 3;
     let client = test_client().lock().unwrap();
 
     // Create N new problems
@@ -68,7 +55,7 @@ fn get_problems() {
     let problems: Vec<Problem> = response.into_json().unwrap();
 
     // Problems should be ordered by created_at DESC (newest first)
-    assert_eq!(problems[0].title, "test_get_problems_10");
+    assert_eq!(problems[0].title, "test_get_problems_3");
     assert_eq!(problems[N - 1].title, "test_get_problems_1");
     assert!(problems.len() >= N);
 }
