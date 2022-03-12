@@ -15,7 +15,7 @@ use rocket::{
     http::{Cookie, CookieJar},
     response::{
         status::{Created, Unauthorized},
-        Redirect,
+        Flash, Redirect,
     },
     serde::json::Json,
 };
@@ -89,6 +89,12 @@ async fn get_profile(db: Db, id: i32) -> Option<Json<Profile>> {
     Some(Json(user.to_profile()))
 }
 
+#[post("/logout")]
+fn logout(jar: &CookieJar<'_>) -> Flash<Redirect> {
+    jar.remove_private(Cookie::named("user_id"));
+    Flash::success(Redirect::to("/api"), "Successfully logged out.")
+}
+
 pub fn routes() -> Vec<rocket::Route> {
-    routes![login, register, me, get_profile]
+    routes![login, register, me, get_profile, logout]
 }

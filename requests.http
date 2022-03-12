@@ -48,3 +48,5 @@ Content-Type: application/json
 ### Delete problem by id
 DELETE http://localhost:8000/api/problems/1
 
+### Logout
+POST http://localhost:8000/api/users/logout

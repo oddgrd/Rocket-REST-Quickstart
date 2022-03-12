@@ -11,7 +11,7 @@ extern crate diesel_migrations;
 extern crate rocket_sync_db_pools;
 
 use dotenv::dotenv;
-use rocket::{fairing::AdHoc, Build};
+use rocket::{fairing::AdHoc, request::FlashMessage, Build};
 
 mod auth;
 mod config;
@@ -21,8 +21,12 @@ mod routes;
 mod schema;
 
 #[get("/")]
-fn index() -> &'static str {
-    "Hello, world!"
+fn index(flash: Option<FlashMessage<'_>>) -> String {
+    if let Some(f) = flash {
+        f.message().to_owned()
+    } else {
+        "Hello World".to_string()
+    }
 }
 
 pub fn rocket() -> rocket::Rocket<Build> {

@@ -75,6 +75,33 @@ fn get_profile_by_id() {
     assert_eq!(user.username, username);
 }
 
+#[test]
+fn logout() {
+    let client = test_client().lock().unwrap();
+    let username = "oddLogout";
+    let email = "oddLogout@test.com";
+
+    let _new_user = register(&client, username, email, "password");
+    let login_cookie = login(&client, username, "password").expect("logged in");
+
+    let response = client
+        .post("/api/users/logout")
+        .cookie(login_cookie)
+        .dispatch();
+    let cookie = user_id_cookie(&response).expect("logout cookie");
+    assert!(cookie.value().is_empty());
+
+    // User should be redirected
+    assert_eq!(response.status(), Status::SeeOther);
+    assert_eq!(response.headers().get_one("Location").unwrap(), "/api");
+
+    // Page should show success message
+    let response = client.get("/api").dispatch();
+    assert_eq!(response.status(), Status::Ok);
+    let body = response.into_string().unwrap();
+    assert!(body.contains("Successfully logged out."));
+}
+
 // Utils
 fn register(client: &Client, username: &str, email: &str, password: &str) -> User {
     let response = client
