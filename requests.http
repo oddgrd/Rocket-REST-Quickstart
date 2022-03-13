@@ -21,13 +21,10 @@ GET http://localhost:8000/api/users/me
 
 ### Create problem
 POST http://localhost:8000/api/problems
-Content-Type: application/json
+Content-Type: application/x-www-form-urlencoded
 
-{
-  "title": "First Problem",
-  "grade": 4,
-  "rating": 2
-}
+title=First Problem
+&grade=4
 
 ### Get all problems
 GET http://localhost:8000/api/problems
@@ -37,13 +34,10 @@ GET http://localhost:8000/api/problems/1
 
 ### Edit problem by id
 PUT http://localhost:8000/api/problems/1
-Content-Type: application/json
+Content-Type: application/x-www-form-urlencoded
 
-{
-  "title": "Updated problem",
-  "grade": 13,
-  "rating": 0
-}
+title=Updated Problem
+&grade=4
 
 ### Delete problem by id
 DELETE http://localhost:8000/api/problems/1

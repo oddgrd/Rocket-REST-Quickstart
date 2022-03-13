@@ -1,22 +1,25 @@
 use super::QueryResult;
 use crate::{
+    auth::Auth,
     database::Db,
-    models::problem::{NewProblem, Problem},
+    models::problem::{NewProblem, Problem, ProblemData, UpdateProblem},
     schema::problems,
 };
 use diesel::prelude::*;
-use rocket::{response::status::Created, serde::json::Json};
+use rocket::{form::Form, response::status::Created, serde::json::Json};
 
-#[post("/", format = "json", data = "<new_problem>")]
+#[post("/", data = "<data>")]
 pub async fn create_problem(
     db: Db,
-    new_problem: Json<NewProblem>,
+    data: Form<ProblemData>,
+    user: Auth,
 ) -> QueryResult<Created<Json<Problem>>> {
-    let values = new_problem.clone();
+    let values = data.into_inner();
+    let new_problem = NewProblem::new(values.title, values.grade, user.0);
     let problem: Problem = db
         .run(move |conn| {
             diesel::insert_into(problems::table)
-                .values(&values)
+                .values(new_problem)
                 .get_result(conn)
         })
         .await?;
@@ -46,17 +49,22 @@ pub async fn get_problem(db: Db, id: i32) -> Option<Json<Problem>> {
         .ok()
 }
 
-#[put("/<id>", format = "json", data = "<new_problem>")]
+#[put("/<id>", data = "<data>")]
 pub async fn update_problem(
     db: Db,
     id: i32,
-    new_problem: Json<NewProblem>,
+    data: Form<ProblemData>,
 ) -> QueryResult<Json<Problem>> {
-    let values = new_problem.clone();
+    let values = data.into_inner();
+    let update_problem = UpdateProblem {
+        title: values.title,
+        grade: values.grade,
+    };
+
     let updated_row = db
         .run(move |conn| {
             diesel::update(problems::table.filter(problems::id.eq(id)))
-                .set(&values)
+                .set(&update_problem)
                 .get_result(conn)
         })
         .await?;

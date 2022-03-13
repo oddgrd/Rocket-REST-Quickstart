@@ -1,28 +1,29 @@
 mod common;
-use common::{test_client, Problem};
-use rocket::http::{ContentType, Status};
+use common::{login, test_client, Problem};
+use rocket::http::{ContentType, Cookie, Status};
 use rocket::local::blocking::Client;
 
 const PROBLEM_GRADE: i32 = 5;
-const PROBLEM_RATING: i32 = 1;
 
 #[test]
 fn post_problem() {
     let client = test_client().lock().unwrap();
-    let test_title = "test post_problem";
+    let cookie = login(&client);
+    let title = "test post_problem";
 
-    let problem: Problem = create_problem(&client, test_title);
+    let problem: Problem = create_problem(&client, &cookie, title);
 
-    assert_eq!(problem.title, test_title);
+    assert_eq!(problem.title, title);
     assert_eq!(problem.grade, PROBLEM_GRADE);
-    assert_eq!(problem.rating, PROBLEM_RATING);
 }
 
 #[test]
 fn get_problem() {
     let client = test_client().lock().unwrap();
+    let cookie = login(&client);
+
     let title = "test get_problem";
-    let new_problem: Problem = create_problem(&client, title);
+    let new_problem: Problem = create_problem(&client, &cookie, title);
 
     let response = client
         .get(format!("/api/problems/{}", new_problem.id))
@@ -34,18 +35,18 @@ fn get_problem() {
 
     assert_eq!(problem.title, title);
     assert_eq!(problem.grade, PROBLEM_GRADE);
-    assert_eq!(problem.rating, PROBLEM_RATING);
 }
 
 #[test]
 fn get_problems() {
     const N: usize = 3;
     let client = test_client().lock().unwrap();
+    let cookie = login(&client);
 
     // Create N new problems
     for i in 1..=N {
         let title = format!("test_get_problems_{}", i);
-        create_problem(&client, &title);
+        create_problem(&client, &cookie, &title);
     }
 
     let response = client.get("/api/problems").dispatch();
@@ -63,34 +64,34 @@ fn get_problems() {
 #[test]
 fn update_problem() {
     let client = test_client().lock().unwrap();
+    let cookie = login(&client);
+
     let title = "test update_problem";
-    let new_problem: Problem = create_problem(&client, title);
+    let new_problem: Problem = create_problem(&client, &cookie, title);
 
     let response = client
         .put(format!("/api/problems/{}", new_problem.id))
-        .header(ContentType::JSON)
-        .body(json_string!({
-            "title": "updated_problem".to_string(),
-            "grade": 13,
-            "rating": 2,
-        }))
+        .cookie(cookie.clone())
+        .header(ContentType::Form)
+        .body(format!("title=updated_problem&grade=13"))
         .dispatch();
 
     assert_eq!(response.status(), Status::Ok);
 
-    let problem: Problem = response.into_json().unwrap();
+    let updated_problem: Problem = response.into_json().unwrap();
 
-    assert!(problem.updated_at > new_problem.created_at);
-    assert_eq!(problem.title, "updated_problem".to_string());
-    assert_eq!(problem.grade, 13);
-    assert_eq!(problem.rating, 2);
+    assert!(updated_problem.updated_at > new_problem.created_at);
+    assert_eq!(updated_problem.title, "updated_problem".to_string());
+    assert_eq!(updated_problem.grade, 13);
 }
 
 #[test]
 fn delete_problem() {
     let client = test_client().lock().unwrap();
+    let cookie = login(&client);
+
     let title = "test delete_problem";
-    let problem: Problem = create_problem(&client, title);
+    let problem: Problem = create_problem(&client, &cookie, title);
 
     let response = client
         .delete(format!("/api/problems/{}", problem.id))
@@ -100,15 +101,12 @@ fn delete_problem() {
 }
 
 // Utils
-fn create_problem(client: &Client, title: &str) -> Problem {
+fn create_problem(client: &Client, cookie: &Cookie, title: &str) -> Problem {
     let response = client
         .post("/api/problems")
-        .header(ContentType::JSON)
-        .body(json_string!({
-            "title": title,
-            "grade": PROBLEM_GRADE,
-            "rating": PROBLEM_RATING
-        }))
+        .cookie(cookie.clone())
+        .header(ContentType::Form)
+        .body(format!("title={}&grade={}", title, PROBLEM_GRADE))
         .dispatch();
 
     assert_eq!(response.status(), Status::Created);

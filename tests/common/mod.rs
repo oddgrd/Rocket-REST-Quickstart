@@ -82,7 +82,7 @@ pub struct Problem {
     pub id: i32,
     pub title: String,
     pub grade: i32,
-    pub rating: i32,
+    pub creator: i32,
     pub updated_at: DateTime<Utc>,
     pub created_at: DateTime<Utc>,
 }
