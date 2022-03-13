@@ -1,93 +1,88 @@
 mod common;
-use common::{test_client, Profile, User};
-use rocket::{
-    http::{ContentType, Cookie, Status},
-    local::blocking::{Client, LocalResponse},
-};
+use common::{login, test_client, user_id_cookie, Profile, User, EMAIL, PASSWORD, USERNAME};
+use rocket::http::{ContentType, Status};
 
 #[test]
-fn register_new_user() {
+fn login_or_register() {
     let client = test_client().lock().unwrap();
+    let new_user_cookie = login(&client);
 
-    let username = "odd";
-    let email = "odd@test.com";
-    let password = "password";
-
-    let new_user = register(&client, username, email, password);
-
-    assert_eq!(new_user.username, username);
-    assert_eq!(new_user.email, email);
-}
-
-#[test]
-fn login_user() {
-    let client = test_client().lock().unwrap();
-
-    let username = "oddLogin";
-    let email = "oddLogin@test.com";
-    let password = "password";
-
-    let new_user = register(&client, username, email, password);
-
-    let login_cookie = login(&client, username, password).expect("logged in");
-
-    // Verify logged in
+    // Verify that user is persisted in DB
     let response = client
         .get("/api/users/me")
-        .cookie(login_cookie.clone())
+        .cookie(new_user_cookie.clone())
         .dispatch();
     assert_eq!(response.status(), Status::Ok);
 
     let db_user: User = response.into_json().unwrap();
 
-    assert_eq!(db_user.id, new_user.id);
-    assert_eq!(db_user.username, username);
+    assert_eq!(db_user.email, EMAIL);
+    assert_eq!(db_user.username, USERNAME);
 }
 
 #[test]
 fn login_incorrect_input() {
     let client = test_client().lock().unwrap();
 
-    let username = "oddLoginErr";
-    let email = "oddLoginErr@test.com";
-    let password = "password";
+    // Make sure a user is created
+    let _user = login(&client);
 
-    register(&client, username, email, password);
+    // Incorrect username
+    let response = client
+        .post("/api/users/login")
+        .header(ContentType::Form)
+        .body(format!("username={}&password={}", "wrong", PASSWORD))
+        .dispatch();
 
-    assert!(login(&client, username, "wrong").is_none());
-    assert!(login(&client, "wrong", password).is_none());
+    assert_eq!(response.status(), Status::Unauthorized);
+    assert!(response
+        .into_string()
+        .unwrap()
+        .contains("user doesn't exist"));
+
+    // Incorrect password
+    let response = client
+        .post("/api/users/login")
+        .header(ContentType::Form)
+        .body(format!("username={}&password={}", USERNAME, "wrong"))
+        .dispatch();
+
+    assert_eq!(response.status(), Status::Unauthorized);
+    assert!(response.into_string().unwrap().contains("invalid password"));
 }
 
 #[test]
 fn get_profile_by_id() {
     let client = test_client().lock().unwrap();
-    let username = "oddGet";
-    let email = "oddget@test.com";
+    let login_cookie = login(&client);
 
-    let new_user = register(&client, username, email, "password");
-
-    let response = client.get(format!("/api/users/{}", new_user.id)).dispatch();
-
+    // Get user from DB
+    let response = client
+        .get("/api/users/me")
+        .cookie(login_cookie.clone())
+        .dispatch();
     assert_eq!(response.status(), Status::Ok);
 
-    let user: Profile = response.into_json().unwrap();
+    let user: User = response.into_json().unwrap();
 
-    assert_eq!(user.username, username);
+    // Get profile
+    let response = client.get(format!("/api/users/{}", user.id)).dispatch();
+    assert_eq!(response.status(), Status::Ok);
+
+    let profile: Profile = response.into_json().unwrap();
+    assert_eq!(profile.username, USERNAME);
 }
 
 #[test]
 fn logout() {
     let client = test_client().lock().unwrap();
-    let username = "oddLogout";
-    let email = "oddLogout@test.com";
-
-    let _new_user = register(&client, username, email, "password");
-    let login_cookie = login(&client, username, "password").expect("logged in");
+    let login_cookie = login(&client);
 
     let response = client
         .post("/api/users/logout")
         .cookie(login_cookie)
         .dispatch();
+
     let cookie = user_id_cookie(&response).expect("logout cookie");
     assert!(cookie.value().is_empty());
 
@@ -100,42 +95,4 @@ fn logout() {
     assert_eq!(response.status(), Status::Ok);
     let body = response.into_string().unwrap();
     assert!(body.contains("Successfully logged out."));
-}
-
-// Utils
-fn register(client: &Client, username: &str, email: &str, password: &str) -> User {
-    let response = client
-        .post("/api/users/register")
-        .header(ContentType::Form)
-        .body(format!(
-            "username={}&email={}&password={}",
-            username, email, password
-        ))
-        .dispatch();
-
-    assert_eq!(response.status(), Status::Created);
-    assert!(user_id_cookie(&response).is_some());
-
-    response.into_json().unwrap()
-}
-
-fn login(client: &Client, username: &str, password: &str) -> Option<Cookie<'static>> {
-    let response = client
-        .post("/api/users/login")
-        .header(ContentType::Form)
-        .body(format!("username={}&password={}", username, password))
-        .dispatch();
-
-    user_id_cookie(&response)
-}
-
-fn user_id_cookie(response: &LocalResponse<'_>) -> Option<Cookie<'static>> {
-    let cookie = response
-        .headers()
-        .get("Set-Cookie")
-        .filter(|v| v.starts_with("user_id"))
-        .nth(0)
-        .and_then(|val| Cookie::parse_encoded(val).ok());
-
-    cookie.map(|c| c.into_owned())
 }
