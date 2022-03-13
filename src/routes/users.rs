@@ -1,4 +1,4 @@
-use super::QueryResult;
+use super::DbResult;
 use crate::diesel::prelude::*;
 use crate::{
     auth::Auth,
@@ -25,7 +25,7 @@ pub async fn register(
     db: Db,
     jar: &CookieJar<'_>,
     register: Form<Register>,
-) -> QueryResult<Created<Json<User>>> {
+) -> DbResult<Created<Json<User>>> {
     let values = register.into_inner();
 
     // Hashes password
@@ -50,7 +50,7 @@ async fn login(
     db: Db,
     jar: &CookieJar<'_>,
     login: Form<Login>,
-) -> Result<Redirect, Unauthorized<String>> {
+) -> DbResult<Redirect, Unauthorized<String>> {
     let values = login.into_inner();
 
     let user = db

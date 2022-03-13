@@ -1,4 +1,4 @@
-use super::QueryResult;
+use super::DbResult;
 use crate::{
     auth::Auth,
     database::Db,
@@ -13,9 +13,10 @@ pub async fn create_problem(
     db: Db,
     data: Form<ProblemData>,
     user: Auth,
-) -> QueryResult<Created<Json<Problem>>> {
+) -> DbResult<Created<Json<Problem>>> {
     let values = data.into_inner();
     let new_problem = NewProblem::new(values.title, values.grade, user.0);
+
     let problem: Problem = db
         .run(move |conn| {
             diesel::insert_into(problems::table)
@@ -29,7 +30,7 @@ pub async fn create_problem(
 }
 
 #[get("/")]
-pub async fn get_problems(db: Db) -> QueryResult<Json<Vec<Problem>>> {
+pub async fn get_problems(db: Db) -> DbResult<Json<Vec<Problem>>> {
     let problems: Vec<Problem> = db
         .run(move |conn| {
             problems::table
@@ -50,11 +51,7 @@ pub async fn get_problem(db: Db, id: i32) -> Option<Json<Problem>> {
 }
 
 #[put("/<id>", data = "<data>")]
-pub async fn update_problem(
-    db: Db,
-    id: i32,
-    data: Form<ProblemData>,
-) -> QueryResult<Json<Problem>> {
+pub async fn update_problem(db: Db, id: i32, data: Form<ProblemData>) -> DbResult<Json<Problem>> {
     let values = data.into_inner();
     let update_problem = UpdateProblem {
         title: values.title,
@@ -73,7 +70,7 @@ pub async fn update_problem(
 }
 
 #[delete("/<id>")]
-pub async fn delete_problem(db: Db, id: i32) -> QueryResult<Option<()>> {
+pub async fn delete_problem(db: Db, id: i32) -> DbResult<Option<()>> {
     let affected = db
         .run(move |conn| {
             diesel::delete(problems::table)

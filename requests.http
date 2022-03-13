@@ -16,7 +16,7 @@ Content-Type: application/x-www-form-urlencoded
 username=odd
 &password=password
 
-### Me
+### Get logged in user
 GET http://localhost:8000/api/users/me
 
 ### Create problem
