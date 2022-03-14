@@ -1,24 +1,12 @@
 mod common;
-use common::{login, test_client, Problem};
+use common::{login, register, test_client, Problem};
 use rocket::http::{ContentType, Cookie, Status};
 use rocket::local::blocking::Client;
 
 const PROBLEM_GRADE: i32 = 5;
 
 #[test]
-fn post_problem() {
-    let client = test_client().lock().unwrap();
-    let cookie = login(&client);
-    let title = "test post_problem";
-
-    let problem: Problem = create_problem(&client, &cookie, title);
-
-    assert_eq!(problem.title, title);
-    assert_eq!(problem.grade, PROBLEM_GRADE);
-}
-
-#[test]
-fn get_problem() {
+fn create_and_get_problem() {
     let client = test_client().lock().unwrap();
     let cookie = login(&client);
 
@@ -98,6 +86,36 @@ fn delete_problem() {
         .dispatch();
 
     assert_eq!(response.status(), Status::Ok);
+}
+
+#[test]
+fn delete_update_different_user() {
+    let client = test_client().lock().unwrap();
+    let cookie = login(&client);
+
+    let title = "test not creator";
+    let problem: Problem = create_problem(&client, &cookie, title);
+
+    // Register and get cookie of a different user
+    let cookie =
+        register(&client, "diff_user", "diff_user@test.com", "password").expect("cookie set");
+    assert!(!cookie.value().is_empty());
+
+    // User shouldn't be able to update other users problems
+    let response = client
+        .put(format!("/api/problems/{}", problem.id))
+        .cookie(cookie.clone())
+        .header(ContentType::Form)
+        .body(format!("title=try_update&grade=13"))
+        .dispatch();
+    assert_eq!(response.status(), Status::InternalServerError);
+
+    // User should n'tbe able to delete other users problems
+    let response = client
+        .delete(format!("/api/problems/{}", problem.id))
+        .cookie(cookie.clone())
+        .dispatch();
+    assert_eq!(response.status(), Status::NotFound);
 }
 
 // Utils

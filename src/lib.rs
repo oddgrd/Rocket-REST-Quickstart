@@ -11,7 +11,7 @@ extern crate diesel_migrations;
 extern crate rocket_sync_db_pools;
 
 use dotenv::dotenv;
-use rocket::{fairing::AdHoc, request::FlashMessage, Build};
+use rocket::{fairing::AdHoc, request::FlashMessage, routes, Build};
 
 mod auth;
 mod config;

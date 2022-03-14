@@ -6,7 +6,7 @@ use crate::{
     schema::problems,
 };
 use diesel::prelude::*;
-use rocket::{form::Form, response::status::Created, serde::json::Json};
+use rocket::{form::Form, response::status::Created, routes, serde::json::Json, uri};
 
 #[post("/", data = "<data>")]
 pub async fn create_problem(
@@ -51,30 +51,38 @@ pub async fn get_problem(db: Db, id: i32) -> Option<Json<Problem>> {
 }
 
 #[put("/<id>", data = "<data>")]
-pub async fn update_problem(db: Db, id: i32, data: Form<ProblemData>) -> DbResult<Json<Problem>> {
+pub async fn update_problem(
+    db: Db,
+    user: Auth,
+    id: i32,
+    data: Form<ProblemData>,
+) -> DbResult<Json<Problem>> {
     let values = data.into_inner();
     let update_problem = UpdateProblem {
         title: values.title,
         grade: values.grade,
     };
 
-    let updated_row = db
+    let updated_problem = db
         .run(move |conn| {
-            diesel::update(problems::table.filter(problems::id.eq(id)))
+            diesel::update(problems::table)
+                .filter(problems::id.eq(id))
+                .filter(problems::creator.eq(user.0))
                 .set(&update_problem)
                 .get_result(conn)
         })
         .await?;
 
-    Ok(Json(updated_row))
+    Ok(Json(updated_problem))
 }
 
 #[delete("/<id>")]
-pub async fn delete_problem(db: Db, id: i32) -> DbResult<Option<()>> {
+pub async fn delete_problem(db: Db, user: Auth, id: i32) -> DbResult<Option<()>> {
     let affected = db
         .run(move |conn| {
             diesel::delete(problems::table)
                 .filter(problems::id.eq(id))
+                .filter(problems::creator.eq(user.0))
                 .execute(conn)
         })
         .await?;

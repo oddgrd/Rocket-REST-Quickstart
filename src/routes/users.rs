@@ -17,7 +17,9 @@ use rocket::{
         status::{Created, Unauthorized},
         Flash, Redirect,
     },
+    routes,
     serde::json::Json,
+    uri,
 };
 
 #[post("/register", data = "<register>")]
