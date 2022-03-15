@@ -1,6 +1,19 @@
 mod common;
-use common::{login, test_client, user_id_cookie, Profile, User, EMAIL, PASSWORD, USERNAME};
+use chrono::{DateTime, Utc};
+use common::{login, test_client, user_id_cookie, EMAIL, PASSWORD, USERNAME};
 use rocket::http::{ContentType, Status};
+use rocket_rest_quickstart::models::user::Profile;
+use serde::Deserialize;
+
+// User model for tests since lib model skip_serialize bugs tests
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct User {
+    pub id: i32,
+    pub username: String,
+    pub email: String,
+    pub created_at: DateTime<Utc>,
+}
 
 #[test]
 fn login_or_register() {

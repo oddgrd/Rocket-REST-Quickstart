@@ -1,8 +1,8 @@
 use crate::schema::problems;
 use chrono::{DateTime, Utc};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Queryable, Serialize)]
+#[derive(Queryable, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Problem {
     pub id: i32,
@@ -15,8 +15,10 @@ pub struct Problem {
 }
 
 #[derive(FromForm)]
-pub struct ProblemData {
-    pub title: String,
+pub struct ProblemData<'r> {
+    #[field(validate = len(2..=25))]
+    pub title: &'r str,
+    #[field(validate = range(0..=19))]
     pub grade: i32,
 }
 
@@ -29,9 +31,9 @@ pub struct NewProblem {
 }
 
 impl NewProblem {
-    pub fn new(title: String, grade: i32, creator: i32) -> Self {
+    pub fn new(title: &str, grade: i32, creator: i32) -> Self {
         NewProblem {
-            title,
+            title: title.into(),
             grade,
             creator,
         }

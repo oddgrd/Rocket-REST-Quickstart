@@ -16,7 +16,7 @@ use rocket::{fairing::AdHoc, request::FlashMessage, routes, Build};
 mod auth;
 mod config;
 mod database;
-mod models;
+pub mod models;
 mod routes;
 mod schema;
 

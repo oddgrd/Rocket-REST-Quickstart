@@ -11,11 +11,10 @@ use rocket::{form::Form, response::status::Created, routes, serde::json::Json, u
 #[post("/", data = "<data>")]
 pub async fn create_problem(
     db: Db,
-    data: Form<ProblemData>,
+    data: Form<ProblemData<'_>>,
     user: Auth,
 ) -> DbResult<Created<Json<Problem>>> {
-    let values = data.into_inner();
-    let new_problem = NewProblem::new(values.title, values.grade, user.0);
+    let new_problem = NewProblem::new(data.title, data.grade, user.0);
 
     let problem: Problem = db
         .run(move |conn| {
@@ -55,12 +54,11 @@ pub async fn update_problem(
     db: Db,
     user: Auth,
     id: i32,
-    data: Form<ProblemData>,
+    data: Form<ProblemData<'_>>,
 ) -> DbResult<Json<Problem>> {
-    let values = data.into_inner();
     let update_problem = UpdateProblem {
-        title: values.title,
-        grade: values.grade,
+        title: data.title.into(),
+        grade: data.grade,
     };
 
     let updated_problem = db

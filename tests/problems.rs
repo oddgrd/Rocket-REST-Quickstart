@@ -1,8 +1,8 @@
 mod common;
-use common::{login, register, test_client, Problem};
+use common::{login, register, test_client};
 use rocket::http::{ContentType, Cookie, Status};
-use rocket::local::blocking::Client;
-
+use rocket::local::blocking::{Client, LocalResponse};
+use rocket_rest_quickstart::models::problem::Problem;
 const PROBLEM_GRADE: i32 = 5;
 
 #[test]
@@ -10,8 +10,22 @@ fn create_and_get_problem() {
     let client = test_client().lock().unwrap();
     let cookie = login(&client);
 
+    let title = "test title too long for validation";
+    let response = create_problem(&client, &cookie, title);
+
+    assert_eq!(response.status(), Status::UnprocessableEntity);
+
     let title = "test get_problem";
-    let new_problem: Problem = create_problem(&client, &cookie, title);
+    let response = create_problem(&client, &cookie, title);
+
+    assert_eq!(response.status(), Status::Created);
+    assert!(response
+        .headers()
+        .get_one("Location")
+        .unwrap()
+        .starts_with("/api/problems/"));
+
+    let new_problem: Problem = response.into_json().unwrap();
 
     let response = client
         .get(format!("/api/problems/{}", new_problem.id))
@@ -55,7 +69,7 @@ fn update_problem() {
     let cookie = login(&client);
 
     let title = "test update_problem";
-    let new_problem: Problem = create_problem(&client, &cookie, title);
+    let new_problem: Problem = create_problem(&client, &cookie, title).into_json().unwrap();
 
     let response = client
         .put(format!("/api/problems/{}", new_problem.id))
@@ -79,7 +93,7 @@ fn delete_problem() {
     let cookie = login(&client);
 
     let title = "test delete_problem";
-    let problem: Problem = create_problem(&client, &cookie, title);
+    let problem: Problem = create_problem(&client, &cookie, title).into_json().unwrap();
 
     let response = client
         .delete(format!("/api/problems/{}", problem.id))
@@ -94,7 +108,7 @@ fn delete_update_different_user() {
     let cookie = login(&client);
 
     let title = "test not creator";
-    let problem: Problem = create_problem(&client, &cookie, title);
+    let problem: Problem = create_problem(&client, &cookie, title).into_json().unwrap();
 
     // Register and get cookie of a different user
     let cookie =
@@ -119,7 +133,7 @@ fn delete_update_different_user() {
 }
 
 // Utils
-fn create_problem(client: &Client, cookie: &Cookie, title: &str) -> Problem {
+fn create_problem<'a>(client: &'a Client, cookie: &Cookie, title: &str) -> LocalResponse<'a> {
     let response = client
         .post("/api/problems")
         .cookie(cookie.clone())
@@ -127,12 +141,5 @@ fn create_problem(client: &Client, cookie: &Cookie, title: &str) -> Problem {
         .body(format!("title={}&grade={}", title, PROBLEM_GRADE))
         .dispatch();
 
-    assert_eq!(response.status(), Status::Created);
-    assert!(response
-        .headers()
-        .get_one("Location")
-        .unwrap()
-        .starts_with("/api/problems/"));
-
-    response.into_json().unwrap()
+    response
 }

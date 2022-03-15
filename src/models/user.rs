@@ -4,7 +4,7 @@ use argon2::{
     Argon2,
 };
 use chrono::{DateTime, Utc};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 #[derive(Queryable, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -17,34 +17,6 @@ pub struct User {
     pub created_at: DateTime<Utc>,
 }
 
-#[derive(Serialize)]
-pub struct Profile {
-    id: i32,
-    username: String,
-    created_at: DateTime<Utc>,
-}
-
-#[derive(FromForm)]
-pub struct Login {
-    pub username: String,
-    pub password: String,
-}
-
-#[derive(FromForm)]
-pub struct Register {
-    pub username: String,
-    pub email: String,
-    pub password: String,
-}
-
-#[derive(Insertable)]
-#[table_name = "users"]
-pub struct NewUser {
-    pub username: String,
-    pub email: String,
-    pub password_hash: String,
-}
-
 impl User {
     pub fn to_profile(self) -> Profile {
         Profile {
@@ -55,8 +27,36 @@ impl User {
     }
 }
 
+#[derive(Serialize, Deserialize)]
+pub struct Profile {
+    pub id: i32,
+    pub username: String,
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(FromForm)]
+pub struct Login {
+    pub username: String,
+    pub password: String,
+}
+
+#[derive(FromForm)]
+pub struct Register<'r> {
+    pub username: &'r str,
+    pub email: &'r str,
+    pub password: &'r str,
+}
+
+#[derive(Insertable)]
+#[table_name = "users"]
+pub struct NewUser {
+    pub username: String,
+    pub email: String,
+    pub password_hash: String,
+}
+
 impl NewUser {
-    pub fn new(username: String, email: String, password: String) -> NewUser {
+    pub fn new(username: &str, email: &str, password: &str) -> NewUser {
         let salt = SaltString::generate(&mut OsRng);
         let password_hash = Argon2::default()
             .hash_password(password.as_bytes(), &salt)
@@ -64,8 +64,8 @@ impl NewUser {
             .to_string();
 
         NewUser {
-            username,
-            email,
+            username: username.into(),
+            email: email.into(),
             password_hash,
         }
     }

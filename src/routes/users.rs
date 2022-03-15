@@ -22,16 +22,14 @@ use rocket::{
     uri,
 };
 
-#[post("/register", data = "<register>")]
+#[post("/register", data = "<data>")]
 pub async fn register(
     db: Db,
     jar: &CookieJar<'_>,
-    register: Form<Register>,
+    data: Form<Register<'_>>,
 ) -> DbResult<Created<Json<User>>> {
-    let values = register.into_inner();
-
     // Hashes password
-    let new_user = NewUser::new(values.username, values.email, values.password);
+    let new_user = NewUser::new(data.username, data.email, data.password);
 
     let user: User = db
         .run(move |conn| {
@@ -47,13 +45,13 @@ pub async fn register(
     Ok(Created::new(location.to_string()).body(Json(user)))
 }
 
-#[post("/login", data = "<login>")]
+#[post("/login", data = "<data>")]
 async fn login(
     db: Db,
     jar: &CookieJar<'_>,
-    login: Form<Login>,
+    data: Form<Login>,
 ) -> DbResult<Redirect, Unauthorized<String>> {
-    let values = login.into_inner();
+    let values = data.into_inner();
 
     let user = db
         .run(move |conn| {
