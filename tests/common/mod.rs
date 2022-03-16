@@ -7,7 +7,7 @@ use std::sync::Mutex;
 
 pub const USERNAME: &'static str = "oddtest";
 pub const EMAIL: &'static str = "oddtest@test.com";
-pub const PASSWORD: &'static str = "password";
+pub const PASSWORD: &'static str = "passwordtest";
 
 pub fn test_client() -> &'static Mutex<Client> {
     static INSTANCE: OnceCell<Mutex<Client>> = OnceCell::new();

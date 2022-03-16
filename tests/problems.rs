@@ -1,5 +1,5 @@
 mod common;
-use common::{login, register, test_client};
+use common::{login, register, test_client, PASSWORD};
 use rocket::http::{ContentType, Cookie, Status};
 use rocket::local::blocking::{Client, LocalResponse};
 use rocket_rest_quickstart::models::problem::Problem;
@@ -112,7 +112,7 @@ fn delete_update_different_user() {
 
     // Register and get cookie of a different user
     let cookie =
-        register(&client, "diff_user", "diff_user@test.com", "password").expect("cookie set");
+        register(&client, "diff_user", "diff_user@test.com", PASSWORD).expect("cookie set");
     assert!(!cookie.value().is_empty());
 
     // User shouldn't be able to update other users problems
@@ -124,7 +124,7 @@ fn delete_update_different_user() {
         .dispatch();
     assert_eq!(response.status(), Status::InternalServerError);
 
-    // User should n'tbe able to delete other users problems
+    // User shouldn't be able to delete other users problems
     let response = client
         .delete(format!("/api/problems/{}", problem.id))
         .cookie(cookie.clone())

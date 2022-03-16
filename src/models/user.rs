@@ -4,6 +4,8 @@ use argon2::{
     Argon2,
 };
 use chrono::{DateTime, Utc};
+use regex::Regex;
+use rocket::form::{self, Error, FromForm};
 use serde::{Deserialize, Serialize};
 
 #[derive(Queryable, Serialize)]
@@ -42,9 +44,25 @@ pub struct Login {
 
 #[derive(FromForm)]
 pub struct Register<'r> {
+    #[field(validate = len(2..=25))]
     pub username: &'r str,
+    #[field(validate = validate_email())]
     pub email: &'r str,
+    #[field(validate = len(10..=50))]
     pub password: &'r str,
+}
+
+fn validate_email<'v>(email: &str) -> form::Result<'v, ()> {
+    let email_regex = Regex::new(
+        r"^([a-z0-9_+]([a-z0-9_+.]*[a-z0-9_+])?)@([a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,6})",
+    )
+    .unwrap();
+
+    if !email_regex.is_match(email) {
+        Err(Error::validation("invalid email"))?;
+    }
+
+    Ok(())
 }
 
 #[derive(Insertable)]

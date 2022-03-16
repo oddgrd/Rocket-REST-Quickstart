@@ -1301,6 +1301,7 @@ dependencies = [
  "env_logger",
  "once_cell",
  "rand_core",
+ "regex",
  "rocket",
  "rocket_sync_db_pools",
  "serde",
