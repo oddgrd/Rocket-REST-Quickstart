@@ -1,21 +1,35 @@
+# Use a multistage build, leveraging Rust's statically linked binaries
+# to build a small image
+
+# Build step - generate a compiled binary
 FROM rust:latest AS builder
 
-RUN USER=root cargo new --bin rocket_pg_template
-WORKDIR /rocket_pg_template
-COPY ./Cargo.toml ./Cargo.toml
-RUN cargo build
+WORKDIR /app
+COPY . .
+RUN cargo build --release
 
-RUN rm src/*.rs
-COPY ./src ./src
-COPY ./migrations ./migrations
-COPY ./diesel.toml ./diesel.toml
-RUN rm ./target/debug/deps/rocket_pg_template*
-RUN cargo build
+# Runtime step - run the binary
+FROM debian:bullseye-slim AS runtime
 
-FROM buildpack-deps:stretch
+WORKDIR /app
 
-COPY --from=builder /rocket_pg_template/target/debug/rocket_pg_template /app/
+# Install ca-certificates - it is needed to verify TLS certificates
+# when establishing HTTPS connections
+RUN apt-get update -y \
+    && apt-get install -y --no-install-recommends openssl ca-certificates \
+    # Library from postgres required by Diesel
+    && apt-get install libpq5 -y \
+    # Clean up
+    && apt-get autoremove -y \
+    && apt-get clean -y \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy the binary
+COPY --from=builder /app/target/release/rocket_rest_quickstart rocket_rest_quickstart
+
+# We need these to run Diesel migrations
+COPY migrations migrations
 
 ENV ROCKET_ADDRESS=0.0.0.0
 
-CMD [ "/app/rocket_pg_template" ]
+ENTRYPOINT ["./rocket_rest_quickstart"]

@@ -1,5 +1,6 @@
 use rocket::response::Debug;
 
+pub mod health_check;
 pub mod problems;
 pub mod users;
 

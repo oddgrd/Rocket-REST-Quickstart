@@ -103,7 +103,7 @@ fn delete_problem() {
 }
 
 #[test]
-fn delete_update_different_user() {
+fn cannot_delete_or_update_when_not_creator() {
     let client = test_client().lock().unwrap();
     let cookie = login(&client);
 

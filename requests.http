@@ -1,5 +1,5 @@
-### Hello World
-GET http://localhost:8000/api
+### Health check
+GET http://127.0.0.1:8000/api/health_check
 
 ### Register
 POST http://localhost:8000/api/users/register

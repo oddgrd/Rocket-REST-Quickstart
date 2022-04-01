@@ -11,7 +11,7 @@ extern crate diesel_migrations;
 extern crate rocket_sync_db_pools;
 
 use dotenv::dotenv;
-use rocket::{fairing::AdHoc, request::FlashMessage, routes, Build};
+use rocket::{fairing::AdHoc, routes, Build};
 
 mod auth;
 mod config;
@@ -19,15 +19,6 @@ mod database;
 pub mod models;
 mod routes;
 mod schema;
-
-#[get("/")]
-fn index(flash: Option<FlashMessage<'_>>) -> String {
-    if let Some(f) = flash {
-        f.message().to_owned()
-    } else {
-        "Hello World".to_string()
-    }
-}
 
 pub fn rocket() -> rocket::Rocket<Build> {
     dotenv().ok();
@@ -38,7 +29,7 @@ pub fn rocket() -> rocket::Rocket<Build> {
             "Database migrations",
             database::run_migrations,
         ))
-        .mount("/api", routes![index])
+        .mount("/api", routes![routes::health_check::health_check])
         .mount("/api/problems", routes::problems::routes())
         .mount("/api/users", routes::users::routes())
 }

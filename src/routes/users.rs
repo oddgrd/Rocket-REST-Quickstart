@@ -13,10 +13,7 @@ use argon2::{
 use rocket::{
     form::Form,
     http::{Cookie, CookieJar},
-    response::{
-        status::{Created, Unauthorized},
-        Flash, Redirect,
-    },
+    response::status::{Accepted, Created, Unauthorized},
     routes,
     serde::json::Json,
     uri,
@@ -50,7 +47,7 @@ async fn login(
     db: Db,
     jar: &CookieJar<'_>,
     data: Form<Login>,
-) -> DbResult<Redirect, Unauthorized<String>> {
+) -> DbResult<Accepted<()>, Unauthorized<String>> {
     let values = data.into_inner();
 
     let user = db
@@ -68,7 +65,7 @@ async fn login(
         .map_err(|_| Unauthorized(Some("invalid password".to_string())))?;
 
     jar.add_private(Cookie::new("user_id", user.id.to_string()));
-    Ok(Redirect::to("/api"))
+    Ok(Accepted::<()>(None))
 }
 
 #[get("/me")]
@@ -90,9 +87,8 @@ async fn get_profile(db: Db, id: i32) -> Option<Json<Profile>> {
 }
 
 #[post("/logout")]
-fn logout(jar: &CookieJar<'_>) -> Flash<Redirect> {
+fn logout(jar: &CookieJar<'_>) {
     jar.remove_private(Cookie::named("user_id"));
-    Flash::success(Redirect::to("/api"), "Successfully logged out.")
 }
 
 pub fn routes() -> Vec<rocket::Route> {

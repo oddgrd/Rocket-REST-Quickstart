@@ -37,31 +37,24 @@ fn login_or_register() {
 fn login_incorrect_input() {
     let client = test_client().lock().unwrap();
 
-    // Make sure a user is created
+    // Make sure a user is created with default values
     let _user = login(&client);
 
-    // Incorrect username
-    let response = client
-        .post("/api/users/login")
-        .header(ContentType::Form)
-        .body(format!("username={}&password={}", "wrong", PASSWORD))
-        .dispatch();
+    let test_cases = [
+        ("nonexistant user", PASSWORD, "user doesn't exist"),
+        (USERNAME, "wrong password", "invalid password"),
+    ];
 
-    assert_eq!(response.status(), Status::Unauthorized);
-    assert!(response
-        .into_string()
-        .unwrap()
-        .contains("user doesn't exist"));
+    for (username, password, error_message) in test_cases {
+        let response = client
+            .post("/api/users/login")
+            .header(ContentType::Form)
+            .body(format!("username={}&password={}", username, password))
+            .dispatch();
 
-    // Incorrect password
-    let response = client
-        .post("/api/users/login")
-        .header(ContentType::Form)
-        .body(format!("username={}&password={}", USERNAME, "wrong"))
-        .dispatch();
-
-    assert_eq!(response.status(), Status::Unauthorized);
-    assert!(response.into_string().unwrap().contains("invalid password"));
+        assert_eq!(response.status(), Status::Unauthorized);
+        assert!(response.into_string().unwrap().contains(error_message));
+    }
 }
 
 #[test]
@@ -98,14 +91,4 @@ fn logout() {
 
     let cookie = user_id_cookie(&response).expect("logout cookie");
     assert!(cookie.value().is_empty());
-
-    // User should be redirected
-    assert_eq!(response.status(), Status::SeeOther);
-    assert_eq!(response.headers().get_one("Location").unwrap(), "/api");
-
-    // Page should show success message
-    let response = client.get("/api").dispatch();
-    assert_eq!(response.status(), Status::Ok);
-    let body = response.into_string().unwrap();
-    assert!(body.contains("Successfully logged out."));
 }
