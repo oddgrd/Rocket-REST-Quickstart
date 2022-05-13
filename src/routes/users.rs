@@ -1,15 +1,13 @@
 use super::DbResult;
 use crate::diesel::prelude::*;
+use crate::models::user::HashedPassword;
 use crate::{
     auth::Auth,
     database::Db,
     models::user::{Login, NewUser, Profile, Register, User},
     schema::users,
 };
-use argon2::{
-    password_hash::{PasswordHash, PasswordVerifier},
-    Argon2,
-};
+
 use rocket::{
     form::Form,
     http::{Cookie, CookieJar},
@@ -23,10 +21,15 @@ use rocket::{
 pub async fn register(
     db: Db,
     jar: &CookieJar<'_>,
-    data: Form<Register<'_>>,
+    data: Form<Register>,
 ) -> DbResult<Created<Json<User>>> {
-    // Hashes password
-    let new_user = NewUser::new(data.username, data.email, data.password);
+    let values = data.into_inner();
+
+    let new_user = NewUser {
+        username: values.username,
+        email: values.email,
+        password_hash: HashedPassword::hash(&values.password),
+    };
 
     let user: User = db
         .run(move |conn| {
@@ -59,10 +62,7 @@ async fn login(
         })
         .await?;
 
-    let parsed_hash = PasswordHash::new(&user.password_hash).expect("hash error");
-    Argon2::default()
-        .verify_password(values.password.as_bytes(), &parsed_hash)
-        .map_err(|_| Unauthorized(Some("invalid password".to_string())))?;
+    user.password_hash.verify(&values.password)?;
 
     jar.add_private(Cookie::new("user_id", user.id.to_string()));
     Ok(Accepted::<()>(None))

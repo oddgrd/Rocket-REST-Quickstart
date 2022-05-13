@@ -1,18 +1,19 @@
 mod common;
+use chrono::{DateTime, Utc};
 use common::{login, register, test_client, PASSWORD};
 use rocket::http::{ContentType, Cookie, Status};
 use rocket::local::blocking::{Client, LocalResponse};
-use rocket_rest_quickstart::models::problem::Problem;
+use serde_json::Value;
 const PROBLEM_GRADE: i32 = 5;
 
 #[test]
-fn create_and_get_problem() {
+fn create_problem_creates_and_persists_problem() {
     let client = test_client().lock().unwrap();
     let cookie = login(&client);
 
+    // Returns a 422 for invalid input
     let title = "test title too long for validation";
     let response = create_problem(&client, &cookie, title);
-
     assert_eq!(response.status(), Status::UnprocessableEntity);
 
     let title = "test get_problem";
@@ -25,18 +26,18 @@ fn create_and_get_problem() {
         .unwrap()
         .starts_with("/api/problems/"));
 
-    let new_problem: Problem = response.into_json().unwrap();
+    let new_problem: Value = serde_json::from_str(&response.into_string().unwrap()).unwrap();
 
     let response = client
-        .get(format!("/api/problems/{}", new_problem.id))
+        .get(format!("/api/problems/{}", new_problem["id"]))
         .dispatch();
 
     assert_eq!(response.status(), Status::Ok);
 
-    let problem: Problem = response.into_json().unwrap();
+    let problem: Value = serde_json::from_str(&response.into_string().unwrap()).unwrap();
 
-    assert_eq!(problem.title, title);
-    assert_eq!(problem.grade, PROBLEM_GRADE);
+    assert_eq!(problem["title"], title);
+    assert_eq!(problem["grade"], PROBLEM_GRADE);
 }
 
 #[test]
@@ -55,12 +56,12 @@ fn get_problems() {
 
     assert_eq!(response.status(), Status::Ok);
 
-    let problems: Vec<Problem> = response.into_json().unwrap();
+    let problems: Value = serde_json::from_str(&response.into_string().unwrap()).unwrap();
 
     // Problems should be ordered by created_at DESC (newest first)
-    assert_eq!(problems[0].title, "test_get_problems_3");
-    assert_eq!(problems[N - 1].title, "test_get_problems_1");
-    assert!(problems.len() >= N);
+    assert_eq!(problems[0]["title"], "test_get_problems_3");
+    assert_eq!(problems[N - 1]["title"], "test_get_problems_1");
+    assert!(problems.as_array().unwrap().len() >= N);
 }
 
 #[test]
@@ -69,10 +70,11 @@ fn update_problem() {
     let cookie = login(&client);
 
     let title = "test update_problem";
-    let new_problem: Problem = create_problem(&client, &cookie, title).into_json().unwrap();
+    let response = create_problem(&client, &cookie, title);
+    let problem: Value = serde_json::from_str(&response.into_string().unwrap()).unwrap();
 
     let response = client
-        .put(format!("/api/problems/{}", new_problem.id))
+        .put(format!("/api/problems/{}", problem["id"]))
         .cookie(cookie.clone())
         .header(ContentType::Form)
         .body(format!("title=updated_problem&grade=13"))
@@ -80,11 +82,17 @@ fn update_problem() {
 
     assert_eq!(response.status(), Status::Ok);
 
-    let updated_problem: Problem = response.into_json().unwrap();
+    let updated_problem: Value = serde_json::from_str(&response.into_string().unwrap()).unwrap();
 
-    assert!(updated_problem.updated_at > new_problem.created_at);
-    assert_eq!(updated_problem.title, "updated_problem".to_string());
-    assert_eq!(updated_problem.grade, 13);
+    // Verify that updated_at gets set
+    let created_at: DateTime<Utc> =
+        serde_json::from_str(&problem["createdAt"].to_string()).unwrap();
+    let updated_at: DateTime<Utc> =
+        serde_json::from_str(&updated_problem["updatedAt"].to_string()).unwrap();
+    assert!(updated_at > created_at);
+
+    assert_eq!(updated_problem["title"], "updated_problem".to_string());
+    assert_eq!(updated_problem["grade"], 13);
 }
 
 #[test]
@@ -93,10 +101,11 @@ fn delete_problem() {
     let cookie = login(&client);
 
     let title = "test delete_problem";
-    let problem: Problem = create_problem(&client, &cookie, title).into_json().unwrap();
+    let response = create_problem(&client, &cookie, title);
+    let problem: Value = serde_json::from_str(&response.into_string().unwrap()).unwrap();
 
     let response = client
-        .delete(format!("/api/problems/{}", problem.id))
+        .delete(format!("/api/problems/{}", problem["id"]))
         .dispatch();
 
     assert_eq!(response.status(), Status::Ok);
@@ -108,7 +117,8 @@ fn cannot_delete_or_update_when_not_creator() {
     let cookie = login(&client);
 
     let title = "test not creator";
-    let problem: Problem = create_problem(&client, &cookie, title).into_json().unwrap();
+    let response = create_problem(&client, &cookie, title);
+    let problem: Value = serde_json::from_str(&response.into_string().unwrap()).unwrap();
 
     // Register and get cookie of a different user
     let cookie =
@@ -117,7 +127,7 @@ fn cannot_delete_or_update_when_not_creator() {
 
     // User shouldn't be able to update other users problems
     let response = client
-        .put(format!("/api/problems/{}", problem.id))
+        .put(format!("/api/problems/{}", problem["id"]))
         .cookie(cookie.clone())
         .header(ContentType::Form)
         .body(format!("title=try_update&grade=13"))
@@ -126,7 +136,7 @@ fn cannot_delete_or_update_when_not_creator() {
 
     // User shouldn't be able to delete other users problems
     let response = client
-        .delete(format!("/api/problems/{}", problem.id))
+        .delete(format!("/api/problems/{}", problem["id"]))
         .cookie(cookie.clone())
         .dispatch();
     assert_eq!(response.status(), Status::NotFound);

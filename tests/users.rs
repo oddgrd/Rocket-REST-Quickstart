@@ -1,20 +1,31 @@
 mod common;
-use chrono::{DateTime, Utc};
 use common::{login, test_client, user_id_cookie, EMAIL, PASSWORD, USERNAME};
 use rocket::http::{ContentType, Status};
-use rocket_rest_quickstart::models::user::Profile;
-use serde::Deserialize;
+use serde_json::Value;
 
-// User model for tests since lib model skip_serialize bugs tests
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct User {
-    pub id: i32,
-    pub username: String,
-    pub email: String,
-    pub created_at: DateTime<Utc>,
+#[test]
+fn register_returns_a_422_for_invalid_input() {
+    let client = test_client().lock().unwrap();
+
+    let test_cases = [
+        (USERNAME, "invalid_email.com", PASSWORD),
+        ("a", "test@gmail.com", PASSWORD),
+        ("validname", "test@gmail.com", "too_short"),
+    ];
+
+    for (username, email, password) in test_cases {
+        let response = client
+            .post("/api/users/register")
+            .header(ContentType::Form)
+            .body(format!(
+                "username={}&email={}&password={}",
+                username, email, password
+            ))
+            .dispatch();
+
+        assert_eq!(response.status(), Status::UnprocessableEntity)
+    }
 }
-
 #[test]
 fn login_or_register() {
     let client = test_client().lock().unwrap();
@@ -27,10 +38,10 @@ fn login_or_register() {
         .dispatch();
     assert_eq!(response.status(), Status::Ok);
 
-    let db_user: User = response.into_json().unwrap();
+    let db_user: Value = serde_json::from_str(&response.into_string().unwrap()).unwrap();
 
-    assert_eq!(db_user.email, EMAIL);
-    assert_eq!(db_user.username, USERNAME);
+    assert_eq!(db_user["email"], EMAIL);
+    assert_eq!(db_user["username"], USERNAME);
 }
 
 #[test]
@@ -69,14 +80,14 @@ fn get_profile_by_id() {
         .dispatch();
     assert_eq!(response.status(), Status::Ok);
 
-    let user: User = response.into_json().unwrap();
+    let user: Value = serde_json::from_str(&response.into_string().unwrap()).unwrap();
 
     // Get profile
-    let response = client.get(format!("/api/users/{}", user.id)).dispatch();
+    let response = client.get(format!("/api/users/{}", user["id"])).dispatch();
     assert_eq!(response.status(), Status::Ok);
 
-    let profile: Profile = response.into_json().unwrap();
-    assert_eq!(profile.username, USERNAME);
+    let profile: Value = serde_json::from_str(&response.into_string().unwrap()).unwrap();
+    assert_eq!(profile["username"], USERNAME);
 }
 
 #[test]

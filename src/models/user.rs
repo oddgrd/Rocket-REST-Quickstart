@@ -1,12 +1,19 @@
 use crate::schema::users;
 use argon2::{
-    password_hash::{rand_core::OsRng, PasswordHasher, SaltString},
-    Argon2,
+    password_hash::{rand_core::OsRng, PasswordHasher, PasswordVerifier, SaltString},
+    Argon2, PasswordHash,
 };
 use chrono::{DateTime, Utc};
-use regex::Regex;
-use rocket::form::{self, Error, FromForm};
+use diesel::backend::Backend;
+use diesel::deserialize::{self, FromSql};
+use diesel::pg::Pg;
+use diesel::serialize::{self, Output, ToSql};
+use rocket::{
+    form::{self, Error, FromForm},
+    response::status::Unauthorized,
+};
 use serde::{Deserialize, Serialize};
+use std::io::Write;
 
 #[derive(Queryable, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -15,7 +22,7 @@ pub struct User {
     pub username: String,
     pub email: String,
     #[serde(skip_serializing)]
-    pub password_hash: String,
+    pub password_hash: HashedPassword,
     pub created_at: DateTime<Utc>,
 }
 
@@ -43,22 +50,17 @@ pub struct Login {
 }
 
 #[derive(FromForm)]
-pub struct Register<'r> {
+pub struct Register {
     #[field(validate = len(2..=25))]
-    pub username: &'r str,
+    pub username: String,
     #[field(validate = validate_email())]
-    pub email: &'r str,
+    pub email: String,
     #[field(validate = len(10..=50))]
-    pub password: &'r str,
+    pub password: String,
 }
 
 fn validate_email<'v>(email: &str) -> form::Result<'v, ()> {
-    let email_regex = Regex::new(
-        r"^([a-z0-9_+]([a-z0-9_+.]*[a-z0-9_+])?)@([a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,6})",
-    )
-    .unwrap();
-
-    if !email_regex.is_match(email) {
+    if !validator::validate_email(email) {
         return Err(Error::validation("invalid email").into());
     }
 
@@ -70,21 +72,46 @@ fn validate_email<'v>(email: &str) -> form::Result<'v, ()> {
 pub struct NewUser {
     pub username: String,
     pub email: String,
-    pub password_hash: String,
+    pub password_hash: HashedPassword,
 }
 
-impl NewUser {
-    pub fn new(username: &str, email: &str, password: &str) -> NewUser {
+// Implementation note:
+// To make HashedPassword insertable or queryable with Diesel, the traits AsExpression,
+// FromSqlRow, FromSql and ToSql have to be implemented to serialize/deserialize
+// HashedPassword into its SQL-type: Text.
+#[derive(AsExpression, FromSqlRow, Debug)]
+#[sql_type = "diesel::sql_types::Text"]
+pub struct HashedPassword(String);
+
+impl HashedPassword {
+    pub fn hash(password: &str) -> Self {
         let salt = SaltString::generate(&mut OsRng);
         let password_hash = Argon2::default()
             .hash_password(password.as_bytes(), &salt)
             .expect("hash error")
             .to_string();
 
-        NewUser {
-            username: username.into(),
-            email: email.into(),
-            password_hash,
-        }
+        Self(password_hash)
+    }
+
+    pub fn verify(&self, input_password: &str) -> Result<(), Unauthorized<String>> {
+        let parsed_hash = PasswordHash::new(&self.0).expect("hash error");
+        Argon2::default()
+            .verify_password(input_password.as_bytes(), &parsed_hash)
+            .map_err(|_| Unauthorized(Some("invalid password".to_string())))?;
+
+        Ok(())
+    }
+}
+
+impl<DB: Backend<RawValue = [u8]>> FromSql<diesel::sql_types::Text, DB> for HashedPassword {
+    fn from_sql(bytes: Option<&DB::RawValue>) -> deserialize::Result<Self> {
+        <String as FromSql<diesel::sql_types::Text, Pg>>::from_sql(bytes).map(HashedPassword)
+    }
+}
+
+impl ToSql<diesel::sql_types::Text, Pg> for HashedPassword {
+    fn to_sql<W: Write>(&self, out: &mut Output<W, Pg>) -> serialize::Result {
+        <String as ToSql<diesel::sql_types::Text, Pg>>::to_sql(&self.0, out)
     }
 }
