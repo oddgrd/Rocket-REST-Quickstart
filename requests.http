@@ -7,14 +7,14 @@ Content-Type: application/x-www-form-urlencoded
 
 username=odd
 &email=odd@test.com
-&password=password
+&password=my_secure_password
 
 ### Login
 POST http://localhost:8000/api/users/login
 Content-Type: application/x-www-form-urlencoded
 
 username=odd
-&password=password
+&password=my_secure_password
 
 ### Get logged in user
 GET http://localhost:8000/api/users/me

@@ -61,7 +61,7 @@ async fn login(
 
     let parsed_hash = PasswordHash::new(&user.password_hash).expect("hash error");
     Argon2::default()
-        .verify_password(&values.password.as_bytes(), &parsed_hash)
+        .verify_password(values.password.as_bytes(), &parsed_hash)
         .map_err(|_| Unauthorized(Some("invalid password".to_string())))?;
 
     jar.add_private(Cookie::new("user_id", user.id.to_string()));

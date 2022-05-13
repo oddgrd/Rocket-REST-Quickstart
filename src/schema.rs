@@ -22,7 +22,4 @@ table! {
 
 joinable!(problems -> users (creator));
 
-allow_tables_to_appear_in_same_query!(
-    problems,
-    users,
-);
+allow_tables_to_appear_in_same_query!(problems, users,);

@@ -59,7 +59,7 @@ fn validate_email<'v>(email: &str) -> form::Result<'v, ()> {
     .unwrap();
 
     if !email_regex.is_match(email) {
-        Err(Error::validation("invalid email"))?;
+        return Err(Error::validation("invalid email").into());
     }
 
     Ok(())
