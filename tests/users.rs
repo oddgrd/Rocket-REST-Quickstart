@@ -1,11 +1,11 @@
 mod common;
-use common::{login, test_client, user_id_cookie, EMAIL, PASSWORD, USERNAME};
+use common::{login, user_id_cookie, EMAIL, PASSWORD, TEST_CLIENT, USERNAME};
 use rocket::http::{ContentType, Status};
 use serde_json::Value;
 
 #[test]
 fn register_returns_a_422_for_invalid_input() {
-    let client = test_client().lock().unwrap();
+    let client = TEST_CLIENT.lock().unwrap();
 
     let test_cases = [
         (USERNAME, "invalid_email.com", PASSWORD),
@@ -28,7 +28,7 @@ fn register_returns_a_422_for_invalid_input() {
 }
 #[test]
 fn login_or_register() {
-    let client = test_client().lock().unwrap();
+    let client = TEST_CLIENT.lock().unwrap();
     let new_user_cookie = login(&client);
 
     // Verify that user is persisted in DB
@@ -46,7 +46,7 @@ fn login_or_register() {
 
 #[test]
 fn login_incorrect_input() {
-    let client = test_client().lock().unwrap();
+    let client = TEST_CLIENT.lock().unwrap();
 
     // Make sure a user is created with default values
     let _user = login(&client);
@@ -70,7 +70,7 @@ fn login_incorrect_input() {
 
 #[test]
 fn get_profile_by_id() {
-    let client = test_client().lock().unwrap();
+    let client = TEST_CLIENT.lock().unwrap();
     let login_cookie = login(&client);
 
     // Get user from DB
@@ -92,7 +92,7 @@ fn get_profile_by_id() {
 
 #[test]
 fn logout() {
-    let client = test_client().lock().unwrap();
+    let client = TEST_CLIENT.lock().unwrap();
     let login_cookie = login(&client);
 
     let response = client

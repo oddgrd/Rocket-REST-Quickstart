@@ -27,10 +27,10 @@ pub struct User {
 }
 
 impl User {
-    pub fn to_profile(self) -> Profile {
+    pub fn to_profile(&self) -> Profile {
         Profile {
             id: self.id,
-            username: self.username,
+            username: self.username.clone(),
             created_at: self.created_at,
         }
     }

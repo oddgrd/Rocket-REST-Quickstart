@@ -1,5 +1,5 @@
 #![allow(unused)]
-use once_cell::sync::OnceCell;
+use once_cell::sync::{Lazy, OnceCell};
 use rocket::{
     http::{ContentType, Cookie},
     local::blocking::{Client, LocalResponse},
@@ -10,22 +10,21 @@ pub const USERNAME: &'static str = "oddtest";
 pub const EMAIL: &'static str = "oddtest@test.com";
 pub const PASSWORD: &'static str = "passwordtest";
 
-/// Launch test_client in a OnceCell to share memory between threads,
-/// as well as making sure it is only initialized once. The data inside
-/// is protected by a Mutex, only one test can hold the lock at a time
-/// and write to the DB
-///
-/// ## Implementation notes
-/// This strategy avoids race conditions, but at the cost of test speed,
-/// as only one test can hold the mutex lock at a time. The alternative is to
-/// create a new DB for each test, or use test transactions to rollback queries.
-pub fn test_client() -> &'static Mutex<Client> {
-    static INSTANCE: OnceCell<Mutex<Client>> = OnceCell::new();
-    INSTANCE.get_or_init(|| {
-        let rocket = rocket_rest_quickstart::rocket();
-        Mutex::from(Client::tracked(rocket).expect("valid rocket instance"))
-    })
-}
+// ## Implementation notes
+// This strategy avoids race conditions, but at the cost of test speed.
+// As only one test can hold the mutex lock at a time, the tests run synchronously.
+// It is currently not possible to spawn a new rocket client as a background task
+// for each test. The rocket official examples also use a mutex for testing.
+// A better solution for testing against a database is likely to be implemented
+// in the future.
+//
+/// Ensure that the `TEST_CLIENT` is only initialised once using `once_cell`.
+/// The data inside is protected by a Mutex, only one test can hold the lock at
+/// a time and write to the DB, preventing conflicts.
+pub static TEST_CLIENT: Lazy<Mutex<Client>> = Lazy::new(|| {
+    let rocket = rocket_rest_quickstart::rocket();
+    Mutex::from(Client::tracked(rocket).expect("valid rocket instance"))
+});
 
 /// Attempt login, fall back to register and then retry login
 pub fn login(client: &Client) -> Cookie<'static> {

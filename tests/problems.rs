@@ -1,6 +1,6 @@
 mod common;
 use chrono::{DateTime, Utc};
-use common::{login, register, test_client, PASSWORD};
+use common::{login, register, PASSWORD, TEST_CLIENT};
 use rocket::http::{ContentType, Cookie, Status};
 use rocket::local::blocking::{Client, LocalResponse};
 use serde_json::Value;
@@ -8,7 +8,7 @@ const PROBLEM_GRADE: i32 = 5;
 
 #[test]
 fn create_problem_creates_and_persists_problem() {
-    let client = test_client().lock().unwrap();
+    let client = TEST_CLIENT.lock().unwrap();
     let cookie = login(&client);
 
     // Returns a 422 for invalid input
@@ -43,7 +43,7 @@ fn create_problem_creates_and_persists_problem() {
 #[test]
 fn get_problems() {
     const N: usize = 3;
-    let client = test_client().lock().unwrap();
+    let client = TEST_CLIENT.lock().unwrap();
     let cookie = login(&client);
 
     // Create N new problems
@@ -66,7 +66,7 @@ fn get_problems() {
 
 #[test]
 fn update_problem() {
-    let client = test_client().lock().unwrap();
+    let client = TEST_CLIENT.lock().unwrap();
     let cookie = login(&client);
 
     let title = "test update_problem";
@@ -97,7 +97,7 @@ fn update_problem() {
 
 #[test]
 fn delete_problem() {
-    let client = test_client().lock().unwrap();
+    let client = TEST_CLIENT.lock().unwrap();
     let cookie = login(&client);
 
     let title = "test delete_problem";
@@ -113,7 +113,7 @@ fn delete_problem() {
 
 #[test]
 fn cannot_delete_or_update_when_not_creator() {
-    let client = test_client().lock().unwrap();
+    let client = TEST_CLIENT.lock().unwrap();
     let cookie = login(&client);
 
     let title = "test not creator";

@@ -1,10 +1,10 @@
 mod common;
-use common::test_client;
+use common::TEST_CLIENT;
 use rocket::http::Status;
 
 #[test]
 fn health_check_works() {
-    let client = test_client().lock().unwrap();
+    let client = TEST_CLIENT.lock().unwrap();
 
     let response = client.get("/api/health_check").dispatch();
 
