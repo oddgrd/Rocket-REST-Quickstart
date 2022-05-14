@@ -94,6 +94,33 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           args: -- -D warnings
 
+  check-unused-deps:
+    name: Check Unused Dependencies
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout the Source Code
+        uses: actions/checkout@v2
+
+      - name: Install nightly toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: nightly
+          override: true
+
+      - name: Install Cargo Udeps
+        uses: actions-rs/cargo@v1
+        with:
+          command: install
+          args: cargo-udeps --locked
+    
+      - name: Run Cargo Udeps
+        uses: actions-rs/cargo@v1
+        with:
+          command: udeps
+          args: --all-targets --all-features
+
   coverage:
     name: Code coverage
     runs-on: ubuntu-latest
