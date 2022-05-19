@@ -1,5 +1,4 @@
-mod common;
-use common::{login, user_id_cookie, EMAIL, PASSWORD, TEST_CLIENT, USERNAME};
+use crate::helpers::{login, user_id_cookie, EMAIL, PASSWORD, TEST_CLIENT, USERNAME};
 use rocket::http::{ContentType, Status};
 use serde_json::Value;
 
@@ -26,6 +25,45 @@ fn register_returns_a_422_for_invalid_input() {
         assert_eq!(response.status(), Status::UnprocessableEntity)
     }
 }
+
+#[test]
+fn register_returns_a_422_for_duplicate_username_or_email() {
+    let client = TEST_CLIENT.lock().unwrap();
+
+    // Make sure user with default options is created
+    let _ = login(&client);
+
+    // Duplicate email
+    let response = client
+        .post("/api/users/register")
+        .header(ContentType::Form)
+        .body(format!(
+            "username={}&email={}&password={}",
+            "notduplicate", EMAIL, PASSWORD
+        ))
+        .dispatch();
+    assert_eq!(response.status(), Status::UnprocessableEntity);
+    assert!(response
+        .into_string()
+        .unwrap()
+        .contains("A user with that email already exists"));
+
+    // Duplicate username
+    let response = client
+        .post("/api/users/register")
+        .header(ContentType::Form)
+        .body(format!(
+            "username={}&email={}&password={}",
+            USERNAME, "notduplicate@test.com", PASSWORD
+        ))
+        .dispatch();
+    assert_eq!(response.status(), Status::UnprocessableEntity);
+    assert!(response
+        .into_string()
+        .unwrap()
+        .contains("A user with that username already exists"));
+}
+
 #[test]
 fn login_or_register() {
     let client = TEST_CLIENT.lock().unwrap();
@@ -45,27 +83,39 @@ fn login_or_register() {
 }
 
 #[test]
-fn login_incorrect_input() {
+fn login_returns_404_for_unknown_user() {
     let client = TEST_CLIENT.lock().unwrap();
 
     // Make sure a user is created with default values
     let _user = login(&client);
 
-    let test_cases = [
-        ("nonexistant user", PASSWORD, "user doesn't exist"),
-        (USERNAME, "wrong password", "invalid password"),
-    ];
+    let response = client
+        .post("/api/users/login")
+        .header(ContentType::Form)
+        .body(format!("username=nonexistantuser&password={}", PASSWORD))
+        .dispatch();
 
-    for (username, password, error_message) in test_cases {
-        let response = client
-            .post("/api/users/login")
-            .header(ContentType::Form)
-            .body(format!("username={}&password={}", username, password))
-            .dispatch();
+    assert_eq!(response.status(), Status::NotFound);
+    assert!(response
+        .into_string()
+        .unwrap()
+        .contains("User doesn't exist"));
+}
 
-        assert_eq!(response.status(), Status::Unauthorized);
-        assert!(response.into_string().unwrap().contains(error_message));
-    }
+#[test]
+fn login_returns_401_for_invalid_password() {
+    let client = TEST_CLIENT.lock().unwrap();
+
+    // Make sure a user is created with default values
+    let _user = login(&client);
+
+    let response = client
+        .post("/api/users/login")
+        .header(ContentType::Form)
+        .body(format!("username={}&password=invalidpassword", USERNAME))
+        .dispatch();
+
+    assert_eq!(response.status(), Status::Unauthorized);
 }
 
 #[test]

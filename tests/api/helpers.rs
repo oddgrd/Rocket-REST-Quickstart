@@ -22,7 +22,7 @@ pub const PASSWORD: &'static str = "passwordtest";
 /// The data inside is protected by a Mutex, only one test can hold the lock at
 /// a time and write to the DB, preventing conflicts.
 pub static TEST_CLIENT: Lazy<Mutex<Client>> = Lazy::new(|| {
-    let rocket = rocket_rest_quickstart::rocket();
+    let rocket = rocket_rest_quickstart::startup::rocket();
     Mutex::from(Client::tracked(rocket).expect("valid rocket instance"))
 });
 

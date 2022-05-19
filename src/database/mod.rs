@@ -1,3 +1,5 @@
+pub mod users;
+
 use rocket::{Build, Rocket};
 
 #[database("diesel_postgres_pool")]

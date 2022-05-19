@@ -1,5 +1,4 @@
-mod common;
-use common::TEST_CLIENT;
+use crate::helpers::TEST_CLIENT;
 use rocket::http::Status;
 
 #[test]

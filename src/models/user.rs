@@ -1,17 +1,13 @@
 use crate::schema::users;
 use argon2::{
     password_hash::{rand_core::OsRng, PasswordHasher, PasswordVerifier, SaltString},
-    Argon2, PasswordHash,
+    Argon2,
 };
 use chrono::{DateTime, Utc};
 use diesel::backend::Backend;
 use diesel::deserialize::{self, FromSql};
-use diesel::pg::Pg;
 use diesel::serialize::{self, Output, ToSql};
-use rocket::{
-    form::{self, Error, FromForm},
-    response::status::Unauthorized,
-};
+use rocket::form::{self, Error, FromForm};
 use serde::{Deserialize, Serialize};
 use std::io::Write;
 
@@ -44,13 +40,13 @@ pub struct Profile {
 }
 
 #[derive(FromForm)]
-pub struct Login {
-    pub username: String,
-    pub password: String,
+pub struct Login<'r> {
+    pub username: &'r str,
+    pub password: &'r str,
 }
 
 #[derive(FromForm)]
-pub struct Register {
+pub struct RegisterData {
     #[field(validate = len(2..=25))]
     pub username: String,
     #[field(validate = validate_email())]
@@ -84,34 +80,37 @@ pub struct NewUser {
 pub struct HashedPassword(String);
 
 impl HashedPassword {
-    pub fn hash(password: &str) -> Self {
+    pub fn parse(raw_password: &str) -> anyhow::Result<HashedPassword> {
         let salt = SaltString::generate(&mut OsRng);
-        let password_hash = Argon2::default()
-            .hash_password(password.as_bytes(), &salt)
-            .expect("hash error")
-            .to_string();
+        let password_hash = Argon2::default().hash_password(raw_password.as_bytes(), &salt)?;
 
-        Self(password_hash)
+        Ok(Self(password_hash.to_string()))
     }
 
-    pub fn verify(&self, input_password: &str) -> Result<(), Unauthorized<String>> {
-        let parsed_hash = PasswordHash::new(&self.0).expect("hash error");
-        Argon2::default()
-            .verify_password(input_password.as_bytes(), &parsed_hash)
-            .map_err(|_| Unauthorized(Some("invalid password".to_string())))?;
+    pub fn verify(&self, raw_password: &str) -> anyhow::Result<()> {
+        let parsed_hash = argon2::PasswordHash::new(&self.0)?;
+        Argon2::default().verify_password(raw_password.as_bytes(), &parsed_hash)?;
 
         Ok(())
     }
 }
 
-impl<DB: Backend<RawValue = [u8]>> FromSql<diesel::sql_types::Text, DB> for HashedPassword {
+impl<DB> FromSql<diesel::sql_types::Text, DB> for HashedPassword
+where
+    DB: Backend,
+    String: FromSql<diesel::sql_types::Text, DB>,
+{
     fn from_sql(bytes: Option<&DB::RawValue>) -> deserialize::Result<Self> {
-        <String as FromSql<diesel::sql_types::Text, Pg>>::from_sql(bytes).map(HashedPassword)
+        <String>::from_sql(bytes).map(HashedPassword)
     }
 }
 
-impl ToSql<diesel::sql_types::Text, Pg> for HashedPassword {
-    fn to_sql<W: Write>(&self, out: &mut Output<W, Pg>) -> serialize::Result {
-        <String as ToSql<diesel::sql_types::Text, Pg>>::to_sql(&self.0, out)
+impl<DB> ToSql<diesel::sql_types::Text, DB> for HashedPassword
+where
+    DB: Backend,
+    String: ToSql<diesel::sql_types::Text, DB>,
+{
+    fn to_sql<W: Write>(&self, out: &mut Output<W, DB>) -> serialize::Result {
+        <String>::to_sql(&self.0, out)
     }
 }

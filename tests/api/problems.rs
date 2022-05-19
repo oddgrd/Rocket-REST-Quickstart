@@ -1,6 +1,5 @@
-mod common;
+use crate::helpers::{login, register, PASSWORD, TEST_CLIENT};
 use chrono::{DateTime, Utc};
-use common::{login, register, PASSWORD, TEST_CLIENT};
 use rocket::http::{ContentType, Cookie, Status};
 use rocket::local::blocking::{Client, LocalResponse};
 use serde_json::Value;
