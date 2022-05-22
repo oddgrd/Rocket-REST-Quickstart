@@ -1,3 +1,4 @@
+use dotenv::dotenv;
 use rocket::config::Config;
 use rocket::figment::{
     map,
@@ -5,15 +6,17 @@ use rocket::figment::{
     Figment,
 };
 use std::env;
-
-pub fn from_env() -> Figment {
-    let db_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+pub fn get_configuration() -> Figment {
+    dotenv().ok();
+    let database_base_url = env::var("DATABASE_BASE_URL").expect("DATABASE_BASE_URL must be set");
+    let database_name = env::var("DATABASE_NAME").expect("DATABASE_NAME must be set");
+    let database_url = format!("{}/{}", database_base_url, database_name);
 
     // In a production environment this key is needed to encrypt private cookies
     let secret_key = env::var("SECRET_KEY").expect("SECRET_KEY must be set");
 
     let db: Map<_, Value> = map! {
-        "url" => db_url.into(),
+        "url" => database_url.into(),
         "pool_size" => 10.into()
     };
 

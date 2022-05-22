@@ -1,14 +1,10 @@
-use dotenv::dotenv;
-use rocket::{fairing::AdHoc, routes, Build};
-
-use crate::configuration;
 use crate::database;
 use crate::routes;
+use rocket::figment::Figment;
+use rocket::{fairing::AdHoc, routes, Build};
 
-pub fn rocket() -> rocket::Rocket<Build> {
-    dotenv().ok();
-
-    rocket::custom(configuration::from_env())
+pub fn rocket(configuration: Figment) -> rocket::Rocket<Build> {
+    rocket::custom(configuration)
         .attach(database::Db::fairing())
         .attach(AdHoc::on_ignite(
             "Database migrations",

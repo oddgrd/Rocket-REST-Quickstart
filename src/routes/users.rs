@@ -26,7 +26,7 @@ use rocket::{request::Request, response::status::Custom};
 #[derive(thiserror::Error, Debug)]
 pub enum UserError {
     #[error("{0}")]
-    DuplicatedUser(String),
+    DuplicatedUser(&'static str),
     #[error("There is no user associated with the provided username.")]
     UnknownUser,
     #[error("Invalid password.")]
@@ -54,11 +54,11 @@ impl From<DieselError> for UserError {
     fn from(err: DieselError) -> UserError {
         if let DieselError::DatabaseError(DatabaseErrorKind::UniqueViolation, info) = &err {
             match info.constraint_name() {
-                Some("users_username_key") => UserError::DuplicatedUser(
-                    "A user with that username already exists".to_string(),
-                ),
+                Some("users_username_key") => {
+                    UserError::DuplicatedUser("A user with that username already exists")
+                }
                 Some("users_email_key") => {
-                    UserError::DuplicatedUser("A user with that email already exists".to_string())
+                    UserError::DuplicatedUser("A user with that email already exists")
                 }
                 _ => UserError::UnexpectedError(err.into()),
             }

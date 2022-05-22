@@ -11,7 +11,7 @@ extern crate diesel_migrations;
 extern crate rocket_sync_db_pools;
 
 mod auth;
-mod configuration;
+pub mod configuration;
 mod database;
 mod models;
 mod routes;
