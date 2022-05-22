@@ -1,5 +1,6 @@
 use crate::database;
 use crate::routes;
+extern crate dotenv;
 use rocket::figment::Figment;
 use rocket::{fairing::AdHoc, routes, Build};
 

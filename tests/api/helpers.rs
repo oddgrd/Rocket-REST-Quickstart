@@ -1,19 +1,11 @@
 use diesel::{Connection, PgConnection};
-use dotenv::dotenv;
 use once_cell::sync::Lazy;
-use rocket::config::Config;
-use rocket::figment::{
-    map,
-    value::{Map, Value},
-    Figment,
-};
 use rocket::{
     http::{ContentType, Cookie},
     local::blocking::{Client, LocalResponse},
 };
-use std::env;
+use rocket_rest_quickstart::config::{Configuration, DatabaseSettings};
 use std::sync::Mutex;
-use uuid::Uuid;
 
 pub const USERNAME: &'static str = "oddtest";
 pub const EMAIL: &'static str = "oddtest@test.com";
@@ -29,39 +21,34 @@ pub const PASSWORD: &'static str = "passwordtest";
 /// Ensures that the `TEST_CLIENT` is only initialised once using `once_cell`.
 /// The data inside is protected by a Mutex, only one test can hold the lock at
 /// a time and write to the DB, preventing conflicts.
+/// ### Example:
+/// ```
+/// // Acquire lock
+/// TEST_CLIENT.lock().unwrap()
+/// // Act
+/// let response = client.get("/api/health_check").dispatch();
+/// // Assert
+/// assert_eq!(response.status(), Status::Ok);
+/// ```
 pub static TEST_CLIENT: Lazy<Mutex<Client>> = Lazy::new(|| {
-    let configuration = get_test_configuration();
-    let rocket = rocket_rest_quickstart::startup::rocket(configuration);
+    // Get configuration with random database name
+    let configuration = Configuration::from_env().with_test_db();
+
+    configure_test_database(&configuration.database_settings);
+
+    let rocket = rocket_rest_quickstart::startup::rocket(configuration.build());
     Mutex::from(Client::tracked(rocket).expect("valid rocket instance"))
 });
 
-fn get_test_configuration() -> Figment {
-    dotenv().ok();
-    let database_base_url = env::var("DATABASE_BASE_URL").expect("DATABASE_BASE_URL must be set");
-    let database_name = Uuid::new_v4().to_string();
-    let database_url = format!("{}/{}", database_base_url, database_name);
-
-    // Setup test database
-    // TODO: drop database after tests
-    // TODO: deduplicate configuration code
-    configure_database(database_base_url, database_name);
-
-    let db: Map<_, Value> = map! {
-        "url" => database_url.into()
-    };
-
-    Config::figment().merge(("databases", map!["diesel_postgres_pool" => db]))
-}
-
-// Setup a new DB each time the tests run
-fn configure_database(base_url: String, database_name: String) {
+/// Setup a new DB each time the tests run
+fn configure_test_database(settings: &DatabaseSettings) {
     // Connect to postgres
-    let connection = PgConnection::establish(&format!("{}/postgres", base_url))
+    let connection = PgConnection::establish(&format!("{}/postgres", settings.base_url))
         .expect("Failed to connect to Postgres");
 
     // Create new database
     connection
-        .execute(format!(r#"CREATE DATABASE "{}";"#, database_name).as_str())
+        .execute(format!(r#"CREATE DATABASE "{}";"#, settings.name).as_str())
         .expect("Failed to create database.");
 }
 
@@ -73,6 +60,7 @@ pub fn login(client: &Client) -> Cookie<'static> {
     })
 }
 
+/// Attempt login
 pub fn try_login(client: &Client) -> Option<Cookie<'static>> {
     let response = client
         .post("/api/users/login")
