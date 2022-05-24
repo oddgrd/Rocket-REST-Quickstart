@@ -3,17 +3,17 @@ services:
     image: postgres:12.9
     restart: always
     environment:
-      - POSTGRES_USER=username
+      - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=password
       - POSTGRES_DB=postgres
     ports:
-      - "8001:5432"
+      - "5432:5432"
   rocket_rest_quickstart:
     build: .
     depends_on:
      - db
     environment:
       - ROCKET_ADDRESS=0.0.0.0
-      - DATABASE_URL=postgres://username:password@db/postgres
+      - DATABASE_URL=postgres://postgres:password@db/postgres
     ports:
       - "8000:8000"
